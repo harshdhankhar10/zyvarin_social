@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X, ChevronDown, Sparkles } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,6 +16,7 @@ const Navbar = () => {
     { label: "Resources", hasDropdown: true },
     { label: "Enterprise", hasDropdown: false },
   ];
+  const router = useRouter();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50">
@@ -49,10 +51,10 @@ const Navbar = () => {
               </div>
 
               <div className="hidden lg:flex items-center gap-3">
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground font-medium">
+                <Button variant="outline" size="sm" onClick={() => router.push('/signin')}>
                   Sign in
                 </Button>
-                <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90 rounded-xl px-5 font-medium shadow-md">
+                <Button size="sm" variant={"accent"} onClick={() => router.push('/signup')}>
                   <Sparkles className="w-4 h-4 mr-1.5" />
                   Start free
                 </Button>
@@ -80,10 +82,10 @@ const Navbar = () => {
                   </button>
                 ))}
                 <hr className="my-3 border-border/30" />
-                <Button variant="ghost" className="justify-start h-12 text-muted-foreground">
+                <Button variant="outline" onClick={() => router.push('/signin')} className="h-12 rounded-xl">
                   Sign in
                 </Button>
-                <Button className="mt-2 h-12 bg-foreground text-background hover:bg-foreground/90 rounded-xl">
+                <Button variant="accent" onClick={() => router.push('/signup')} className="mt-2 h-12 rounded-xl">
                   <Sparkles className="w-4 h-4 mr-2" />
                   Start free trial
                 </Button>
