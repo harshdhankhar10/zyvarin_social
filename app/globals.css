@@ -1,42 +1,241 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@media (prefers-color-scheme: dark) {
+
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: 0 0% 99%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 222 47% 11%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 252 100% 67%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 252 100% 67%;
+
+    --radius: 1rem;
+
+    /* Custom semantic colors */
+    --coral: 12 100% 94%;
+    --coral-medium: 12 80% 85%;
+    --coral-dark: 12 76% 61%;
+    --lavender: 252 100% 97%;
+    --lavender-medium: 252 80% 90%;
+    --lavender-dark: 252 100% 67%;
+    --mint: 158 64% 94%;
+    --mint-medium: 158 50% 85%;
+    --mint-dark: 158 64% 42%;
+    --slate: 220 9% 46%;
+    --navy: 222 47% 11%;
+
+    /* Shadows */
+    --shadow-soft: 0 1px 3px 0 hsl(220 20% 10% / 0.03), 0 1px 2px -1px hsl(220 20% 10% / 0.03);
+    --shadow-card: 0 4px 6px -1px hsl(220 20% 10% / 0.04), 0 2px 4px -2px hsl(220 20% 10% / 0.04);
+    --shadow-elevated: 0 20px 25px -5px hsl(220 20% 10% / 0.08), 0 8px 10px -6px hsl(220 20% 10% / 0.06);
+    --shadow-glow: 0 0 60px -10px hsl(252 100% 67% / 0.3);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 0 0% 98%;
+    --card: 222 47% 8%;
+    --card-foreground: 0 0% 98%;
+    --popover: 222 47% 8%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 222 30% 14%;
+    --muted-foreground: 220 9% 60%;
+    --accent: 252 100% 67%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 222 30% 18%;
+    --input: 222 30% 18%;
+    --ring: 252 100% 67%;
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 252 100% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 30% 14%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 222 30% 18%;
+    --sidebar-ring: 252 100% 67%;
   }
 }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+@layer base {
+  * {
+    @apply border-border;
   }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Instrument Serif', Georgia, serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer components {
+  .container-wide {
+    @apply max-w-7xl mx-auto px-5 sm:px-8 lg:px-12;
+  }
+
+  .container-narrow {
+    @apply max-w-5xl mx-auto px-5 sm:px-8 lg:px-12;
+  }
+
+  .card-soft {
+    @apply bg-card rounded-2xl border border-border/50;
+    box-shadow: var(--shadow-card);
+  }
+
+  .card-elevated {
+    @apply bg-card rounded-2xl border border-border/30;
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .card-coral {
+    @apply rounded-2xl border border-coral-dark/10;
+    background: hsl(var(--coral));
+  }
+
+  .card-lavender {
+    @apply rounded-2xl border border-lavender-dark/10;
+    background: hsl(var(--lavender));
+  }
+
+  .card-mint {
+    @apply rounded-2xl border border-mint-dark/10;
+    background: hsl(var(--mint));
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .section-padding {
+    @apply py-20 md:py-28 lg:py-32;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium;
+  }
+
+  .badge-lavender {
+    @apply badge;
+    background: hsl(var(--lavender));
+    color: hsl(var(--lavender-dark));
+  }
+
+  .badge-mint {
+    @apply badge;
+    background: hsl(var(--mint));
+    color: hsl(var(--mint-dark));
+  }
+
+  .badge-coral {
+    @apply badge;
+    background: hsl(var(--coral));
+    color: hsl(var(--coral-dark));
+  }
+}
+
+@layer utilities {
+  .animate-fade-up {
+    animation: fadeUp 0.7s ease-out forwards;
+  }
+
+  .animate-fade-up-delay-1 {
+    animation: fadeUp 0.7s ease-out 0.1s forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-up-delay-2 {
+    animation: fadeUp 0.7s ease-out 0.2s forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-up-delay-3 {
+    animation: fadeUp 0.7s ease-out 0.3s forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-up-delay-4 {
+    animation: fadeUp 0.7s ease-out 0.4s forwards;
+    opacity: 0;
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .hover-glow:hover {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .image-fade {
+    mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
 }

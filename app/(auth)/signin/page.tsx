@@ -1,0 +1,132 @@
+"use client"
+import React, {useState} from 'react';
+
+import { Mail, Lock, ArrowRight, Twitter, Github, Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+const SignInPage = () => {
+  const [showPassword, setShowPassword] = useState(false);
+
+
+  return (
+    <div className="min-h-screen w-full flex">
+      <div 
+        className="hidden lg:flex w-1/2 bg-cover bg-center relative overflow-hidden"
+        style={{
+          backgroundImage: `url('https://images.unsplash.com/photo-1639322537228-f710d846310a?q=80&w=2532&auto=format&fit=crop')`,
+        }}
+      >
+        <div className="absolute inset-0 bg-black/50"></div>
+
+        <div className="relative z-10 w-full h-full flex flex-col justify-between p-16 text-white">
+              <Link href="/">
+                <h1 className="text-4xl font-bold tracking-tight">Zyvarin.</h1>
+              </Link>
+            <div className="max-w-md">
+                <h2 className="text-3xl font-bold mb-4">
+                  The AI-powered cross-posting engine for developers.
+                </h2>
+                <p className="text-lg text-slate-200 leading-relaxed">
+                    Write once, repurpose everywhere. Streamline your content workflow with intelligent automation.
+                </p>
+            </div>
+        </div>
+      </div>
+
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 bg-white">
+        <div className="w-full max-w-md">
+          
+          <div className="mb-10">
+            <h2 className="text-3xl font-bold text-slate-900 mb-3 tracking-tight">
+              Welcome back
+            </h2>
+            <p className="text-slate-600">
+              Sign in to your account to continue.
+            </p>
+          </div>
+
+          <form className="space-y-6">
+            <div className="relative">
+              <label htmlFor="email" className="sr-only">Email address</label>
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Mail className="h-5 w-5 text-slate-400" />
+              </div>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Email address"
+              />
+            </div>
+
+            <div className="relative">
+              <label htmlFor="password" className="sr-only">Password</label>
+              <div className="absolute inset-y-0 -top-6 left-0 pl-4 flex items-center pointer-events-none">
+                <Lock className="h-5 w-5 text-slate-400" />
+              </div>
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+              />
+              <div className=" flex justify-end mt-2">
+                <Link href="/forgot-password" className="text-xs font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
+                  Forgot Password?
+                </Link>
+              </div>
+              <div className="absolute inset-y-0 -top-5 right-0 pr-4 flex items-center">
+                  <button onClick={() => setShowPassword(!showPassword)}
+                   type="button" className="text-xs font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
+                    {showPassword ? <EyeOff className="h-5 w-5 text-slate-400" /> : <Eye className="h-5 w-5 text-slate-400" />}
+                  </button>
+              </div>
+
+            </div>
+
+            <Button
+              type="button" variant={"accent"} size={"lg"}
+              className='w-full'
+            >
+              Sign In <ArrowRight className="w-5 h-5" />
+            </Button>
+          </form>
+
+          <div className="relative flex items-center justify-center my-8">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200"></div>
+            </div>
+            <span className="relative z-10 bg-white px-3 text-sm text-slate-500">
+              or continue with
+            </span>
+          </div>
+
+          <div className="flex justify-center gap-4">
+            <button className="p-3 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group">
+            <svg height="24" width="24"
+            viewBox="-3 0 262 262" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid"><path d="M255.878 133.451c0-10.734-.871-18.567-2.756-26.69H130.55v48.448h71.947c-1.45 12.04-9.283 30.172-26.69 42.356l-.244 1.622 38.755 30.023 2.685.268c24.659-22.774 38.875-56.282 38.875-96.027" fill="#4285F4"/><path d="M130.55 261.1c35.248 0 64.839-11.605 86.453-31.622l-41.196-31.913c-11.024 7.688-25.82 13.055-45.257 13.055-34.523 0-63.824-22.773-74.269-54.25l-1.531.13-40.298 31.187-.527 1.465C35.393 231.798 79.49 261.1 130.55 261.1" fill="#34A853"/><path d="M56.281 156.37c-2.756-8.123-4.351-16.827-4.351-25.82 0-8.994 1.595-17.697 4.206-25.82l-.073-1.73L15.26 71.312l-1.335.635C5.077 89.644 0 109.517 0 130.55s5.077 40.905 13.925 58.602l42.356-32.782" fill="#FBBC05"/><path d="M130.55 50.479c24.514 0 41.05 10.589 50.479 19.438l36.844-35.974C195.245 12.91 165.798 0 130.55 0 79.49 0 35.393 29.301 13.925 71.947l42.211 32.783c10.59-31.477 39.891-54.251 74.414-54.251" fill="#EB4335"/></svg>
+            </button>
+            <button className="p-3 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group">
+              <Twitter className="w-6 h-6 text-[#1DA1F2]" />
+            </button>
+            <button className="p-3 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group">
+              <Github className="w-6 h-6 text-slate-900" />
+            </button>
+          </div>
+
+          <div className="text-center mt-8">
+            <p className="text-sm text-slate-600">
+              Don't have an account?{' '}
+              <Link href="/signup" className="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors ml-1">
+                Create an account
+              </Link>
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SignInPage;

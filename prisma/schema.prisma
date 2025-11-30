@@ -1,0 +1,50 @@
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SubscriptionPlan {
+  FREE 
+  CREATOR
+  TEAM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  CANCELED
+  PAST_DUE
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+model User {
+  id String @id @default(cuid())
+  fullName String
+  email String @unique
+  password String
+  avatarUrl String? @default("https://static.vecteezy.com/system/resources/previews/048/926/061/non_2x/bronze-membership-icon-default-avatar-profile-icon-membership-icon-social-media-user-image-illustration-vector.jpg")
+  timezone String?
+  subscription_plan SubscriptionPlan? @default(FREE)
+  role Role @default(USER)
+  status AccountStatus @default(INACTIVE)
+  isEmailVerified Boolean @default(false)
+  lastLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
