@@ -1,13 +1,23 @@
 "use client"
 
-import { useState } from "react";
+import { useState, use, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X, ChevronDown, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-
+import { getSession, signOut } from "next-auth/react";
+import { Session } from "next-auth";
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const session = await getSession();
+      setSession(session);
+    };
+    checkSession();
+  }, []);
 
   const navItems = [
     { label: "Product", hasDropdown: true },
@@ -50,7 +60,17 @@ const Navbar = () => {
                 ))}
               </div>
 
-              <div className="hidden lg:flex items-center gap-3">
+             {session ? (
+                <div className="hidden lg:flex items-center gap-3">
+                  <Button size="sm" variant={"accent"} onClick={() => router.push('/dashboard')}>
+                    Go to Dashboard
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => signOut()}>
+                    Sign out
+                  </Button>
+                </div>
+             ) : (
+               <div className="hidden lg:flex items-center gap-3">
                 <Button variant="outline" size="sm" onClick={() => router.push('/signin')}>
                   Sign in
                 </Button>
@@ -59,6 +79,7 @@ const Navbar = () => {
                   Start free
                 </Button>
               </div>
+             )}
 
               <button
                 className="lg:hidden p-2.5 text-foreground hover:bg-secondary rounded-xl transition-colors"
@@ -82,13 +103,26 @@ const Navbar = () => {
                   </button>
                 ))}
                 <hr className="my-3 border-border/30" />
-                <Button variant="outline" onClick={() => router.push('/signin')} className="h-12 rounded-xl">
+                {session ? (
+                  <div className="flex flex-col gap-2">
+                    <Button variant="accent" onClick={() => router.push('/dashboard')} className="h-12 rounded-xl">
+                      Go to Dashboard
+                    </Button>
+                    <Button variant="outline" onClick={() => signOut()} className="h-12 rounded-xl">
+                      Sign out
+                    </Button>
+                  </div>
+                ) : (
+                   <div>
+                 <Button variant="outline" onClick={() => router.push('/signin')} className="h-12 rounded-xl">
                   Sign in
                 </Button>
                 <Button variant="accent" onClick={() => router.push('/signup')} className="mt-2 h-12 rounded-xl">
                   <Sparkles className="w-4 h-4 mr-2" />
                   Start free trial
                 </Button>
+               </div>
+                )}
               </div>
             </div>
           )}

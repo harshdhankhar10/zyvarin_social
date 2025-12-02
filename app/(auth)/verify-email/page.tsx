@@ -1,24 +1,30 @@
 "use client"
 import React, {useState} from 'react';
 
-import { Mail, Lock, ArrowRight, Twitter, Github, Eye, EyeOff, Loader } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Twitter, Github, Eye, EyeOff, Loader, Key } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-
-const SignInPage = () => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [otp, setOtp] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const router = useRouter();
+const VerifyEmailPage = () => {
+    const router = useRouter();
+    const getEmailFromLocalStorage = () => {
+      if (typeof window !== 'undefined') {
+        return localStorage.getItem('signupEmail') || '';
+      }
+    }
+    const clearEmailFromLocalStorage = () => {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('signupEmail');
+      }
+    }
+    const [email, setEmail] = useState(getEmailFromLocalStorage() || '');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [otp, setOtp] = useState('');
 
     const handleSendOtp = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -26,7 +32,7 @@ const SignInPage = () => {
       setError('');
       setSuccess('');
       try {
-        const response =  await axios.post('/api/auth/forgot-password', { email });
+        const response =  await axios.post('/api/auth/verify-email', { email });
         if (response.status === 200) {
         
           setSuccess('Verification OTP sent to your email.');
@@ -42,23 +48,19 @@ const SignInPage = () => {
     }
 
     const handleVerifyOtp = async () => {
-        if (password !== confirmPassword) {
-            setError('Passwords do not match.');
-            setSuccess('');
-            return;
-        }
         setLoading(true);
         setError('');
         setSuccess('');
         try {
-            const response = await axios.patch('/api/auth/forgot-password', { email, otp, newPassword: password });
+            const response = await axios.patch('/api/auth/verify-email', { email, otp });
             if (response.status === 200) {
-                setSuccess('OTP verified successfully. Redirecting to Sign In page...');
+                setSuccess('Your email has been verified successfully. Redirecting to dashboard...');
                 setError('');
                 setIsModalOpen(false);
+                clearEmailFromLocalStorage();
                 setTimeout(() => {
                   router.push('/signin');
-                }, 3000);
+                }, 2000);
             }
         } catch (error:any) {
             setError(error.response?.data?.error || 'An error occurred. Please try again.');
@@ -68,16 +70,15 @@ const SignInPage = () => {
         }
     }
 
-
   return (
     <>
     <div className="min-h-screen w-full flex">
       <div 
         className="hidden lg:flex w-1/2 bg-cover bg-center relative overflow-hidden"
         style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1639322537228-f710d846310a?q=80&w=2532&auto=format&fit=crop')`,
+            backgroundImage: `url('https://images.unsplash.com/photo-1639322537228-f710d846310a?q=80&w=2532&auto=format&fit=crop')`,
         }}
-        >
+      >
         <div className="absolute inset-0 bg-black/50"></div>
 
         <div className="relative z-10 w-full h-full flex flex-col justify-between p-16 text-white">
@@ -86,19 +87,19 @@ const SignInPage = () => {
               </Link>
             <div className="max-w-md">
                 <h2 className="text-3xl font-bold mb-2">
-                  Forgot Your Password?
+                  Verify Your Email Address
                 </h2>
                 <p className="text-lg text-slate-200 leading-relaxed font-medium mb-6">
-                    Here are some tips for creating a strong password:
+                    Here are steps to verify your email address:
                 </p>
                     <ul className="list-disc list-inside mt-2 text-slate-300 flex flex-col gap-1 font-semibold">
-                      <li>Use a mix of uppercase and lowercase letters.</li>
-                      <li>Include numbers and special characters.</li>
+                      <li>Check your email inbox for the verification code.</li>
+                      <li>Enter the received code in the verification field.</li>
                       <li>
-                        Password Must contain at least one uppercase letter, one lowercase letter, one number, and one special character.
+                        If you didn't receive the code, check your spam or junk folder.
                       </li>
-                      <li>Avoid using easily guessable information like birthdays or common words.</li>
-                      <li>Make your password at least 8 characters long.</li>
+                      <li>Request a new code if necessary.</li>
+                      <li>Once verified, you can proceed to access your account.</li>
                     </ul>
             </div>
         </div>
@@ -106,22 +107,13 @@ const SignInPage = () => {
 
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 bg-white">
         <div className="w-full max-w-md">
-          {error && (
-            <div className="mb-4 p-4 text-sm text-red-700 bg-red-100 font-semibold rounded-lg" role="alert">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="mb-4 p-4 text-sm text-green-700 bg-green-100 rounded-lg" role="alert">
-              {success}
-            </div>
-          )}
+          
           <div className="mb-10">
             <h2 className="text-3xl font-bold text-slate-900 mb-3 tracking-tight">
-                Reset Your Password
+                Verify Your Email Address
             </h2>
             <p className="text-slate-600">
-                Enter your email address below and we'll send you an verification code to reset your password.
+                Enter your email address below and we'll send you an verification code to verify your email.
             </p>
           </div>
 
@@ -137,18 +129,18 @@ const SignInPage = () => {
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className=""
+                className="pl-10"
+                disabled
                 />
             </div>
 
             <Button
               type="submit" variant={"accent"} size={"lg"}
               className='w-full'
-              onClick={handleSendOtp}
               disabled={loading}
+              onClick={handleSendOtp}
               >
-                {loading ? 'Sending OTP...' : 'Send Verification OTP'}
-               {loading ? <Loader className="ml-2 h-5 w-5 animate-spin" /> : <ArrowRight className="ml-2 h-5 w-5" />}
+                {loading ? (<Loader className="animate-spin h-5 w-5 mx-auto" />) : 'Send Verification Code'}
             </Button>
           </form>
 
@@ -177,51 +169,41 @@ const SignInPage = () => {
     {isModalOpen && (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-8 w-full max-w-md">
-
-        {error && ( 
-          <div className="mb-4 p-4 text-sm text-red-700 bg-red-100 font-semibold rounded-lg" role="alert">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="mb-4 p-4 text-sm text-green-700 bg-green-100 rounded-lg" role="alert">
-            {success}
-          </div>
-        )}
-
-          <h2 className="text-2xl font-bold mb-4">Verify OTP</h2>
-          <p className="mb-4">Enter the OTP sent to your email address.</p>
-          <Input
-            type="text"
-            placeholder="Enter OTP"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            className="mb-4"
-          />
-          <Input 
-            type={showPassword ? 'text' : 'password'}
-            placeholder="New Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mb-4"
-          />
-          <div className="relative mb-4">
-            <Input 
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Confirm New Password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full pr-10"
+            {error && (
+              <div className="mb-4 p-4 bg-red-100 text-red-700 border border-red-300 rounded">
+                {error}
+                </div>
+            )}
+            {success && (
+              <div className="mb-4 p-4 bg-green-100 text-green-700 border border-green-300 rounded">
+                {success}
+              </div>
+            )}
+            <h2 className="text-2xl font-bold mb-4">Enter Verification Code</h2>
+            
+            <Input
+              type="number"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              placeholder="Enter OTP received via email"
+              className='pl-6 text-center'
             />
-          </div>
-          <div className="flex justify-end space-x-4">
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleVerifyOtp} disabled={loading || otp.trim() === '' || password.trim() === '' || confirmPassword.trim() === ''}>
-              {loading ? 'Verifying...' : 'Verify OTP'}
-            </Button>
-          </div>
+            <div className="mt-6 flex justify-end">
+              <Button
+                variant="secondary"
+                className="mr-4"
+                onClick={() => setIsModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="accent"
+                onClick={handleVerifyOtp}
+                disabled={loading}
+              >
+                {loading ? (<Loader className="animate-spin h-5 w-5 mx-auto" />) : 'Verify Code'}
+              </Button>
+            </div>
         </div>
       </div>
     )}
@@ -229,4 +211,4 @@ const SignInPage = () => {
   );
 };
 
-export default SignInPage;
+export default VerifyEmailPage;

@@ -1,20 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { currentLoggedInUserInfo } from '@/utils/currentLogegdInUserInfo'
+import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://zyvarin.com"),
-  title : "Zyvarin Social | Write Once, Publish Everywhere",
+    title : "Zyvarin Social Dashboard",
   description:
     "Zyvarin Social is an AI-powered cross-posting tool that lets you write content once and automatically repurpose and publish it to LinkedIn, X (Twitter), Medium, and more from a single dashboard.",
   keywords: [
@@ -28,7 +18,7 @@ export const metadata: Metadata = {
     "Medium articles",
   ],
   openGraph: {
-    title: "Zyvarin Social | AI Cross-Posting Engine",
+    title: "Zyvarin Social Dashboard",
     description:
       "Write once, repurpose with AI, and publish everywhere. Manage LinkedIn, X, Medium and more from one clean dashboard.",
     url: "https://zyvarin.com",
@@ -37,23 +27,26 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Zyvarin Social | AI Cross-Posting Engine",
+    title: "Zyvarin Social Dashboard",
     description:
       "Write once, repurpose with AI, and publish everywhere from a single dashboard.",
   },
 };
 
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+    const user = await currentLoggedInUserInfo();
+
+    if(!user){
+        redirect('/signin');
+    }
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+    <div>
         {children}
-      </body>
-    </html>
-  );
+    </div>    
+);
 }
