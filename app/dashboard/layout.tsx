@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { currentLoggedInUserInfo } from '@/utils/currentLogegdInUserInfo'
 import { redirect } from 'next/navigation';
+import TopNavbar from "./TopNavbar";
+import Sidebar from "./Sidebar";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://zyvarin.com"),
-    title : "Zyvarin Social Dashboard",
+  title: "Zyvarin Social Dashboard",
   description:
     "Zyvarin Social is an AI-powered cross-posting tool that lets you write content once and automatically repurpose and publish it to LinkedIn, X (Twitter), Medium, and more from a single dashboard.",
   keywords: [
@@ -39,14 +41,19 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-    const user = await currentLoggedInUserInfo();
+  const user = await currentLoggedInUserInfo();
 
-    if(!user){
-        redirect('/signin');
-    }
+  if (!user) {
+    redirect('/signin');
+  }
   return (
-    <div>
-        {children}
-    </div>    
-);
+    <div className="min-h-screen bg-slate-50">
+      <TopNavbar user = {user} />
+      <div className="flex pt-12 h-screen">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto py-6 pl-20 pr-8">
+          {children}
+        </main>
+      </div>
+    </div>);
 }

@@ -48,4 +48,55 @@ model User {
   lastLogin DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  socialProviders SocialProvider[]
+}
+
+
+model SocialProvider {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String   // 'linkedin', 'twitter', 'facebook'
+  providerAccountId String
+  providerUserId    String?  // Platform's user ID (like linkedinId)
+  
+  access_token      String?
+  refresh_token     String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  
+  profileData       Json?    
+  credentials       Json?    
+  
+  isConnected       Boolean  @default(false)
+  connectedAt       DateTime @default(now())
+  lastUsedAt        DateTime?
+  disconnectedAt    DateTime?
+  connectionCount   Int      @default(1)
+  
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts  Post[] 
+  
+  @@unique([provider, providerAccountId])
+  @@unique([provider, userId])
+  @@index([userId])
+  @@index([provider])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id                 String   @id @default(cuid())
+  socialProviderId   String
+  content            String
+  postedAt           DateTime?
+  status             String   @default("POSTED") 
+  errorMessage       String?
+  mediaUrls         String[]
+  
+  socialProvider     SocialProvider @relation(fields: [socialProviderId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
