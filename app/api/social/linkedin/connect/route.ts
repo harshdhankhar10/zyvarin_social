@@ -4,11 +4,11 @@ export async function GET() {
   try {
     const session = await currentLoggedInUserInfo()
     if(!session){
-        return null;
+        return ;
     }
     
     if (!session?.id) {
-      return NextResponse.redirect('/api/auth/signin')
+      return ;
     }
 
     const stateData = {
