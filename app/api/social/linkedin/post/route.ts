@@ -1,4 +1,3 @@
-// app/api/social/linkedin/post/route.ts
 import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo"
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
@@ -6,10 +5,13 @@ import prisma from "@/lib/prisma"
 export async function POST(request: Request) {
   try {
     const session = await currentLoggedInUserInfo()
-    if(!session) {
-        return null
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      )
     }
-    
+
     if (!session?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -46,14 +48,14 @@ export async function POST(request: Request) {
     if (linkedinProvider.expires_at && linkedinProvider.expires_at < now) {
       await prisma.socialProvider.update({
         where: { id: linkedinProvider.id },
-        data: { 
+        data: {
           isConnected: false,
           disconnectedAt: new Date()
         }
       })
-      
-      return NextResponse.json({ 
-        error: "LinkedIn token expired. Please reconnect." 
+
+      return NextResponse.json({
+        error: "LinkedIn token expired. Please reconnect."
       }, { status: 400 })
     }
 
@@ -98,7 +100,7 @@ export async function POST(request: Request) {
     if (!linkedinResponse.ok) {
       const errorText = await linkedinResponse.text()
       console.error('LinkedIn API error:', errorText)
-      
+
       await prisma.post.create({
         data: {
           socialProviderId: linkedinProvider.id,
@@ -130,17 +132,17 @@ export async function POST(request: Request) {
       data: { lastUsedAt: new Date() }
     })
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       postId: post.id,
       linkedinPostId: linkedinPostIdResult,
-      message: "Posted to LinkedIn successfully!" 
+      message: "Posted to LinkedIn successfully!"
     })
-    
+
   } catch (error: any) {
     console.error('LinkedIn posting error:', error)
-    return NextResponse.json({ 
-      error: error.message || "Failed to post to LinkedIn" 
+    return NextResponse.json({
+      error: error.message || "Failed to post to LinkedIn"
     }, { status: 500 })
   }
 }
