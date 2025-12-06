@@ -1,9 +1,9 @@
 import React from 'react'
 
-export const page = () => {
+const page = () => {
   return (
-    <div>
-        This is the Integrations settings page.
-    </div>
+    <div>page</div>
   )
 }
+
+export default page
