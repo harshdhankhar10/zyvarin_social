@@ -1,0 +1,189 @@
+import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo"
+import { NextResponse } from "next/server"
+import prisma from "@/lib/prisma"
+
+export async function POST(request: Request) {
+  try {
+    const session = await currentLoggedInUserInfo()
+    
+    if (!session) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Unauthorized" 
+      }, { status: 401 })
+    }
+
+    const { apiKey } = await request.json()
+
+    if (!apiKey?.trim()) {
+      return NextResponse.json({ 
+        success: false,
+        message: "API key is required" 
+      }, { status: 400 })
+    }
+
+    const userResponse = await fetch('https://dev.to/api/users/me', {
+      headers: {
+        'api-key': apiKey.trim(),
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!userResponse.ok) {
+      const articlesResponse = await fetch('https://dev.to/api/articles/me', {
+        headers: {
+          'api-key': apiKey.trim(),
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (!articlesResponse.ok) {
+        return NextResponse.json({ 
+          success: false,
+          message: "Invalid API key. Please check your Dev.to API key." 
+        }, { status: 400 })
+      }
+      
+      const articles = await articlesResponse.json()
+      if (!articles || articles.length === 0) {
+        return NextResponse.json({ 
+          success: false,
+          message: "Could not retrieve user information from Dev.to" 
+        }, { status: 400 })
+      }
+      
+      const firstArticle = articles[0]
+      const userData = {
+        id: firstArticle.user_id || Date.now().toString(),
+        username: firstArticle.username || 'devto_user',
+        name: firstArticle.name || 'Dev.to User',
+        twitter_username: firstArticle.twitter_username,
+        github_username: firstArticle.github_username,
+        website_url: firstArticle.url,
+        profile_image: firstArticle.profile_image_90
+      }
+      
+      const profile = {
+        id: userData.id.toString(),
+        username: userData.username,
+        name: userData.name,
+        twitter_username: userData.twitter_username,
+        github_username: userData.github_username,
+        website_url: userData.website_url,
+        profile_image: userData.profile_image,
+      }
+
+      await prisma.socialProvider.upsert({
+        where: {
+          provider_providerAccountId: {
+            provider: 'devto',
+            providerAccountId: userData.id.toString(),
+          },
+        },
+        update: {
+          providerUserId: userData.id.toString(),
+          access_token: apiKey.trim(), 
+          isConnected: true,
+          profileData: profile,
+          connectedAt: new Date(),
+          lastUsedAt: new Date(),
+          disconnectedAt: null,
+        },
+        create: {
+          provider: 'devto',
+          providerAccountId: userData.id.toString(),
+          providerUserId: userData.id.toString(),
+          userId: session.id,
+          access_token: apiKey.trim(),
+          expires_at: null,
+          token_type: 'api_key',
+          scope: 'read_articles write_articles',
+          isConnected: true,
+          profileData: profile,
+          connectedAt: new Date(),
+          lastUsedAt: new Date(),
+          connectionCount: 1,
+        },
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: "Dev.to connected successfully",
+        user: {
+          id: userData.id,
+          username: userData.username,
+          name: userData.name,
+        }
+      }, { status: 200 })
+    }
+
+    const userData = await userResponse.json()
+    
+    if (!userData || !userData.id) {
+      return NextResponse.json({ 
+        success: false,
+        message: "Invalid user data received from Dev.to" 
+      }, { status: 400 })
+    }
+    
+    const profile = {
+      id: userData.id.toString(),
+      username: userData.username,
+      name: userData.name,
+      twitter_username: userData.twitter_username,
+      github_username: userData.github_username,
+      website_url: userData.website_url,
+      profile_image: userData.profile_image,
+    }
+
+    await prisma.socialProvider.upsert({
+      where: {
+        provider_providerAccountId: {
+          provider: 'devto',
+          providerAccountId: userData.id.toString(),
+        },
+      },
+      update: {
+        providerUserId: userData.id.toString(),
+        access_token: apiKey.trim(), 
+        isConnected: true,
+        profileData: profile,
+        connectedAt: new Date(),
+        lastUsedAt: new Date(),
+        disconnectedAt: null,
+      },
+      create: {
+        provider: 'devto',
+        providerAccountId: userData.id.toString(),
+        providerUserId: userData.id.toString(),
+        userId: session.id,
+        access_token: apiKey.trim(),
+        expires_at: null,
+        token_type: 'api_key',
+        scope: 'read_articles write_articles',
+        isConnected: true,
+        profileData: profile,
+        connectedAt: new Date(),
+        lastUsedAt: new Date(),
+        connectionCount: 1,
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: "Dev.to connected successfully",
+      user: {
+        id: userData.id,
+        username: userData.username,
+        name: userData.name,
+      }
+    }, { status: 200 })
+    
+  } catch (error) {
+    console.error('Dev.to connect error:', error)
+    return NextResponse.json({ 
+      success: false,
+      message: "Failed to connect Dev.to. Please check your API key and try again." 
+    }, { status: 500 })
+  }
+}

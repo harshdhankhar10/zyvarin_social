@@ -1,0 +1,386 @@
+"use client"
+
+import React, { useRef, useState } from 'react'
+import {
+  ImageIcon, Calendar, Wand2, ChevronDown,
+  Clock, Loader2, Check, X, Upload
+} from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
+interface EditorPanelProps {
+  content: string
+  setContent: (content: string) => void
+  tone: string
+  setTone: (tone: string) => void
+  customToneContent: string
+  setCustomToneContent: (content: string) => void
+  scheduleTime: string
+  setScheduleTime: (time: string) => void
+  aiLoading: boolean
+  handleEnhanceClick: (enhanceOptions: string[]) => void
+  selectedEnhanceOptions: string[]
+  setSelectedEnhanceOptions: React.Dispatch<React.SetStateAction<string[]>>
+  selectedPlatforms: string[]
+  mediaUrls: string[]
+  setMediaUrls: (urls: string[]) => void
+  handleUploadImage: (file: File) => Promise<string | null>
+  uploadLoading: boolean
+  aiLimits: {
+    canUse: boolean;
+    remaining: number;
+    used: number;
+    total: number;
+    percentage: number;
+    hasReachedLimit: boolean;
+  }
+}
+
+const EditorPanel: React.FC<EditorPanelProps> = ({
+  content,
+  setContent,
+  tone,
+  setTone,
+  customToneContent,
+  setCustomToneContent,
+  scheduleTime,
+  setScheduleTime,
+  aiLoading,
+  handleEnhanceClick,
+  selectedEnhanceOptions,
+  setSelectedEnhanceOptions,
+  selectedPlatforms,
+  mediaUrls,
+  setMediaUrls,
+  handleUploadImage,
+  uploadLoading,
+  aiLimits
+}) => {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [imageUpload, setImageUpload] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string>('')
+
+  const toggleEnhanceOption = (option: string) => {
+    if (selectedEnhanceOptions.includes(option)) {
+      setSelectedEnhanceOptions(prev => prev.filter(item => item !== option))
+    } else {
+      setSelectedEnhanceOptions(prev => [...prev, option])
+    }
+  }
+
+  const toneOptions = ['Professional', 'Conversational', 'Educational', 'Inspirational', 'Persuasive', 'Casual']
+  const contentOptions = ['Short & Punchy', 'Detailed Professional', 'Engaging Story', 'Thread Format']
+  const platformOptions = ['Twitter Optimized', 'LinkedIn Ready', 'Cross-Platform']
+  const formatOptions = ['Bullet Points', 'Q&A Style', 'Problem-Solution', 'How-To Guide']
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      
+      const fileSizeInMB = file.size / (1024 * 1024)
+      const maxSizeMB = 5
+      if (fileSizeInMB > maxSizeMB) {
+        alert(`File too large. Maximum size is ${maxSizeMB}MB.`)
+        return
+      }
+
+      setImageUpload(file)
+      
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+
+      const imageUrl = await handleUploadImage(file)
+      if (imageUrl) {
+        setMediaUrls([...mediaUrls, imageUrl])
+        setImageUpload(null)
+        setImagePreview('')
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+      }
+    }
+  }
+
+
+  const removeImage = (index: number) => {
+    const newMediaUrls = [...mediaUrls]
+    newMediaUrls.splice(index, 1)
+    setMediaUrls(newMediaUrls)
+  }
+
+  return (
+    <div className="w-full lg:w-[70%] flex flex-col border-r border-slate-200">
+      <div className="p-6 border-b border-slate-100">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-slate-900">Create Post</h1>
+            <p className="text-sm text-slate-500 mt-1">Compose your message below</p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 rounded-md text-sm hover:bg-slate-100 transition-colors">
+                  {tone || 'Tone'}
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Tone</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onClick={() => setTone('Professional')}>Professional</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTone('Friendly')}>Friendly</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTone('Educational')}>Educational</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTone('Concise')}>Concise</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTone('Custom')}>Custom</DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {aiLimits.canUse ? (
+              <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button 
+                  disabled={aiLoading || !content.trim() || selectedPlatforms.length === 0}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+                    aiLoading || !content.trim() || selectedPlatforms.length === 0
+                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                      : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                  }`}
+                >
+                  {aiLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Wand2 className="w-4 h-4" />
+                  )}
+                  {aiLoading ? 'Enhancing...' : 'Enhance'}
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <div className="p-3 border-b">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-slate-900">AI Enhance Options</span>
+                    {selectedEnhanceOptions.length > 0 && (
+                      <button 
+                        onClick={() => setSelectedEnhanceOptions([])}
+                        className="text-xs text-slate-500 hover:text-slate-700"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="p-3 max-h-96 overflow-y-auto">
+                  <div className="mb-4">
+                    <p className="text-xs font-medium text-slate-700 mb-2">Tone Styles</p>
+                    <div className="grid grid-cols-2 gap-1">
+                      {toneOptions.map((option) => (
+                        <div
+                          key={option}
+                          className={`flex items-center gap-2 p-2 rounded cursor-pointer ${
+                            selectedEnhanceOptions.includes(option) ? 'bg-indigo-50' : 'hover:bg-slate-50'
+                          }`}
+                          onClick={() => toggleEnhanceOption(option)}
+                        >
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                            selectedEnhanceOptions.includes(option) ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'
+                          }`}>
+                            {selectedEnhanceOptions.includes(option) && <Check className="w-2.5 h-2.5 text-white" />}
+                          </div>
+                          <span className="text-xs">{option}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <p className="text-xs font-medium text-slate-700 mb-2">Content Types</p>
+                    <div className="grid grid-cols-2 gap-1">
+                      {contentOptions.map((option) => (
+                        <div
+                          key={option}
+                          className={`flex items-center gap-2 p-2 rounded cursor-pointer ${
+                            selectedEnhanceOptions.includes(option) ? 'bg-indigo-50' : 'hover:bg-slate-50'
+                          }`}
+                          onClick={() => toggleEnhanceOption(option)}
+                        >
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                            selectedEnhanceOptions.includes(option) ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'
+                          }`}>
+                            {selectedEnhanceOptions.includes(option) && <Check className="w-2.5 h-2.5 text-white" />}
+                          </div>
+                          <span className="text-xs">{option}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <p className="text-xs font-medium text-slate-700 mb-2">Platform-Specific</p>
+                    <div className="grid grid-cols-2 gap-1">
+                      {platformOptions.map((option) => (
+                        <div
+                          key={option}
+                          className={`flex items-center gap-2 p-2 rounded cursor-pointer ${
+                            selectedEnhanceOptions.includes(option) ? 'bg-indigo-50' : 'hover:bg-slate-50'
+                          }`}
+                          onClick={() => toggleEnhanceOption(option)}
+                        >
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                            selectedEnhanceOptions.includes(option) ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'
+                          }`}>
+                            {selectedEnhanceOptions.includes(option) && <Check className="w-2.5 h-2.5 text-white" />}
+                          </div>
+                          <span className="text-xs">{option}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 border-t">
+                 {aiLimits.canUse ? (
+                   <button
+                    onClick={() => handleEnhanceClick(selectedEnhanceOptions)}
+                    disabled={aiLoading || selectedEnhanceOptions.length === 0 || !content.trim() || selectedPlatforms.length === 0}
+                    className={`w-full py-2 text-sm font-medium rounded transition-colors flex items-center justify-center gap-2 ${
+                      aiLoading || selectedEnhanceOptions.length === 0 || !content.trim() || selectedPlatforms.length === 0
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    }`}
+                  >
+                    {aiLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Wand2 className="w-4 h-4" />
+                    )}
+                    {aiLoading ? 'Enhancing...' : 'Enhance Now'}
+                  </button>
+                 ) : (
+                    <button
+                      disabled
+                      className="w-full py-2 text-sm font-medium rounded transition-colors flex items-center justify-center gap-2 bg-slate-100 text-slate-400 cursor-not-allowed"
+                    >
+                      AI Limit Reached ({aiLimits.used}/{aiLimits.total})
+                    </button>
+                 ) }
+                  <p className="text-xs text-slate-500 mt-2 text-center">
+                    {selectedEnhanceOptions.length} option{selectedEnhanceOptions.length !== 1 ? 's' : ''} selected
+                  </p>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            ) : (
+              <button 
+                disabled
+                className="px-3 py-1.5 rounded-md text-sm font-medium bg-slate-100 text-slate-400 cursor-not-allowed flex items-center gap-2"
+              >
+                AI Limit Reached ({aiLimits.used}/{aiLimits.total})
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {tone === 'Custom' && (
+        <div className="px-6 py-3 bg-indigo-50/30 border-b">
+          <textarea
+            placeholder="Custom tone instructions..."
+            value={customToneContent}
+            onChange={(e) => setCustomToneContent(e.target.value)}
+            className="text-sm w-full border-slate-200 p-2 rounded border"
+            rows={2}
+          />
+        </div>
+      )}
+
+      <div className="flex-1 p-6 relative">
+        <textarea
+          className="w-full h-full pb-32 resize-none outline-none text-base text-slate-900 placeholder:text-slate-400 font-normal leading-relaxed min-h-[300px]"
+          placeholder="What would you like to share today?"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+        />
+        
+        {mediaUrls.length > 0 && (
+          <div className="mb-4 pb-4 border-b border-slate-100">
+            <div className="flex flex-wrap gap-3">
+              {mediaUrls.map((url, index) => (
+                <div key={index} className="relative group">
+                  <img 
+                    src={url} 
+                    alt={`Upload ${index + 1}`}
+                    className="w-20 h-20 object-cover rounded-lg border border-slate-200"
+                  />
+                  <button
+                    onClick={() => removeImage(index)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        <div className="absolute bottom-12 left-6 right-6 flex items-center justify-between">
+          <div className="flex gap-1">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              className="hidden"
+              disabled={uploadLoading}
+            />
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadLoading}
+              className={`p-2 rounded transition-colors flex items-center gap-1 ${
+                uploadLoading
+                  ? 'text-slate-400 cursor-not-allowed'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              {uploadLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ImageIcon className="w-4 h-4" />
+              )}
+              <span className="text-xs hidden sm:inline">
+                {uploadLoading ? 'Uploading...' : 'Add Image'}
+              </span>
+            </button>
+            <button className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors">
+              <Calendar className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className={`text-xs ${content.length > 3000 ? 'text-red-600' : 'text-slate-500'}`}>
+              {content.length}/3000
+            </span>
+            <span className={`text-xs ${content.length > 280 ? 'text-red-600' : 'text-slate-500'}`}>
+              Twitter: {content.length}/280
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default EditorPanel

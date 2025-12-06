@@ -1,7 +1,5 @@
-
 generator client {
-    provider = "prisma-client-js"
-
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -9,11 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum SubscriptionPlan {
-  FREE 
-  CREATOR
-  TEAM
-}
 
 enum SubscriptionStatus {
   ACTIVE
@@ -35,68 +28,184 @@ enum AccountStatus {
 }
 
 model User {
-  id String @id @default(cuid())
-  fullName String
-  email String @unique
-  password String
-  avatarUrl String? @default("https://static.vecteezy.com/system/resources/previews/048/926/061/non_2x/bronze-membership-icon-default-avatar-profile-icon-membership-icon-social-media-user-image-illustration-vector.jpg")
-  timezone String?
+  id                String            @id @default(cuid())
+  fullName          String
+  email             String            @unique
+  password          String
+  avatarUrl         String?           @default("https://static.vecteezy.com/system/resources/previews/048/926/061/non_2x/bronze-membership-icon-default-avatar-profile-icon-membership-icon-social-media-user-image-illustration-vector.jpg")
+  timezone          String?
   subscription_plan SubscriptionPlan? @default(FREE)
-  role Role @default(USER)
-  status AccountStatus @default(INACTIVE)
-  isEmailVerified Boolean @default(false)
-  lastLogin DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  socialProviders SocialProvider[]
+  next_billing_date DateTime?
+  subscription_status SubscriptionStatus @default(INACTIVE)
+  role              Role              @default(USER)
+  status            AccountStatus     @default(INACTIVE)
+  isEmailVerified   Boolean           @default(false)
+  lastLogin         DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  socialProviders   SocialProvider[]
+  aiUsages          AI_Usage[]
+  notifications     Notification[]
+  invoices          Invoice[]
+  transactions      Transaction[]
 }
 
-
 model SocialProvider {
-  id                String   @id @default(cuid())
+  id                String  @id @default(cuid())
   userId            String
-  provider          String   // 'linkedin', 'twitter', 'facebook'
+  provider          String // 'linkedin', 'twitter', 'facebook'
   providerAccountId String
-  providerUserId    String?  // Platform's user ID (like linkedinId)
-  
-  access_token      String?
-  refresh_token     String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  
-  profileData       Json?    
-  credentials       Json?    
-  
-  isConnected       Boolean  @default(false)
-  connectedAt       DateTime @default(now())
-  lastUsedAt        DateTime?
-  disconnectedAt    DateTime?
-  connectionCount   Int      @default(1)
-  
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  posts  Post[] 
-  
+  providerUserId    String? // Platform's user ID (like linkedinId)
+
+  access_token  String?
+  refresh_token String?
+  expires_at    Int?
+  token_type    String?
+  scope         String?
+
+  profileData Json?
+  credentials Json?
+
+  isConnected     Boolean   @default(false)
+  connectedAt     DateTime  @default(now())
+  lastUsedAt      DateTime?
+  disconnectedAt  DateTime?
+  connectionCount Int       @default(1)
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts Post[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([provider, providerAccountId])
   @@unique([provider, userId])
   @@index([userId])
   @@index([provider])
-  
+}
+
+model Post {
+  id               String    @id @default(cuid())
+  socialProviderId String
+  content          String
+  postedAt         DateTime?
+  status           String    @default("POSTED")
+  errorMessage     String?
+  mediaUrls        String[]
+
+  socialProvider SocialProvider @relation(fields: [socialProviderId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model Post {
-  id                 String   @id @default(cuid())
-  socialProviderId   String
-  content            String
-  postedAt           DateTime?
-  status             String   @default("POSTED") 
-  errorMessage       String?
-  mediaUrls         String[]
-  
-  socialProvider     SocialProvider @relation(fields: [socialProviderId], references: [id], onDelete: Cascade)
-  
+enum SenderType {
+  ADMIN
+  SYSTEM
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  senderType SenderType @default(SYSTEM)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model AI_Usage {
+  id                 String   @id @default(cuid())
+  userId             String
+  type               String  @default("COMPOSE_POST")
+  additionalInfo    String?
+  platforms_enhanced String[] @default([])
+  enhancement_types  String[] @default([])
+  postUsed           String  @default("")
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+enum SubscriptionPlan {
+  FREE
+  CREATOR
+  PREMIUM
+}
+
+
+model Invoice {
+  id         String   @id @default(cuid())
+  userId      String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoiceNumber String @unique
+  orderId     String
+  plan      SubscriptionPlan 
+  planPeriod String @default("MONTHLY") 
+
+  subTotal   Float
+  taxAmount  Float
+  totalAmount Float
+  currency   String @default("INR")
+  
+
+  paymentMethod String
+  paymentGatewayId String
+  paymentStatus String
+  paymentDate   DateTime
+
+  invoiceStatus String
+  issueDate    DateTime
+  dueDate      DateTime
+  paidDate     DateTime?
+
+
+  itemDescription String
+  itemQuantity   Int     @default(1)
+  
+  additionalInfo Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([invoiceNumber])
+}
+
+enum TransactionType {
+  SUBSCRIPTION_PAYMENT
+  REFUND
+  ADDON_PURCHASE
+}
+
+enum TransactionStatus {
+  SUCCESS
+  FAILED
+  PENDING
+}
+
+model Transaction {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactionType TransactionType @default(SUBSCRIPTION_PAYMENT)
+  amount          Float
+  currency        String @default("INR")
+  status          TransactionStatus @default(PENDING)
+  paymentMethod   String
+  transactionDate DateTime
+
+  additionalInfo Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }

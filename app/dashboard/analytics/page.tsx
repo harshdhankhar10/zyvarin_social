@@ -2,7 +2,7 @@ import Analytics from '@/components/Dashboard/Analytics'
 import { currentLoggedInUserInfo } from '@/utils/currentLogegdInUserInfo'
 import prisma from '@/lib/prisma'
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, subDays, subMonths } from 'date-fns'
-
+import { currentUserPlan } from '../pricingUtils'
 const Page = async () => {
   const session = await currentLoggedInUserInfo()
   
@@ -19,6 +19,12 @@ const Page = async () => {
         include: {
           posts: true
         }
+      },
+      aiUsages: {
+        orderBy: {
+          createdAt: 'desc'
+        },
+        take: 50
       }
     }
   })
@@ -109,6 +115,31 @@ const Page = async () => {
     }))
   ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 10)
 
+  const aiUsageStats = {
+    totalUses: user.aiUsages.length,
+    usesThisMonth: user.aiUsages.filter(usage => usage.createdAt >= monthStart).length,
+    usesThisWeek: user.aiUsages.filter(usage => usage.createdAt >= weekStart).length,
+    mostUsedEnhancements: user.aiUsages.reduce((acc, usage) => {
+      usage.enhancement_types.forEach(type => {
+        acc[type] = (acc[type] || 0) + 1
+      })
+      return acc
+    }, {} as Record<string, number>),
+    platformUsage: user.aiUsages.reduce((acc, usage) => {
+      usage.platforms_enhanced.forEach(platform => {
+        acc[platform] = (acc[platform] || 0) + 1
+      })
+      return acc
+    }, {} as Record<string, number>),
+    recentUses: user.aiUsages.slice(0, 10).map(usage => ({
+      id: usage.id,
+      type: usage.type,
+      platforms: usage.platforms_enhanced,
+      enhancements: usage.enhancement_types,
+      createdAt: usage.createdAt
+    }))
+  }
+
   const analyticsData = {
     overview: {
       totalPosts,
@@ -118,17 +149,22 @@ const Page = async () => {
       connectedPlatforms: connectedPlatforms.length,
       postsThisMonth,
       postsThisWeek,
-      postsLast30Days
+      postsLast30Days,
+      totalAiUses: aiUsageStats.totalUses,
+      aiUsesThisMonth: aiUsageStats.usesThisMonth,
+      aiUsesThisWeek: aiUsageStats.usesThisWeek
     },
     platformPerformance: postsByPlatform,
     monthlyTrends,
     recentPosts,
+    aiUsage: aiUsageStats,
     user: {
       name: user.fullName,
       email: user.email,
       plan: user.subscription_plan,
-      joinedDate: user.createdAt
-    }
+      joinedDate: user.createdAt,
+    },
+    currentPlan: await currentUserPlan(user.id)
   }
 
   return (

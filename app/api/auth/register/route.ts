@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
                 fullName,
                 email,
                 password: hashedPassword,
+                subscription_status : "ACTIVE"
             },
         });
 

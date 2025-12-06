@@ -1,0 +1,296 @@
+"use client"
+
+import React, { useEffect, useState } from 'react'
+import axios from 'axios'
+import EditorPanel from './EditorPanel'
+import PreviewPanel from './PreviewPanel'
+import ActionBar from './ActionBar'
+import AISuggestionsModal from './AISuggestionsModal'
+import { Users } from 'lucide-react'
+import Link from 'next/link'
+
+
+const ComposeContent = ({ 
+  connectedAccounts, 
+  hasLinkedin, 
+  hasTwitter ,
+  aiLimits
+}: { 
+  connectedAccounts: Array<{ provider: string; profileData: any }>
+  hasLinkedin: boolean
+  hasTwitter: boolean
+  aiLimits: {
+    canUse: boolean;
+    remaining: number;
+    used: number;
+    total: number;
+    percentage: number;
+    hasReachedLimit: boolean;
+  }
+}) => {
+  const [content, setContent] = useState('')
+  const [tone, setTone] = useState('')
+  const [customToneContent, setCustomToneContent] = useState('')
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
+  const [scheduleTime, setScheduleTime] = useState('now')
+  const [showPlatformSelector, setShowPlatformSelector] = useState(false)
+  const [publishLoading, setPublishLoading] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [uploadLoading, setUploadLoading] = useState(false)
+  const [result, setResult] = useState<{success?: boolean; message?: string} | null>(null)
+  const [showAISuggestions, setShowAISuggestions] = useState(false)
+  const [aiSuggestions, setAiSuggestions] = useState<any>(null)
+  const [selectedEnhanceOptions, setSelectedEnhanceOptions] = useState<string[]>(['Professional'])
+  const [mediaUrls, setMediaUrls] = useState<string[]>([])
+
+  useEffect(() => {
+    const draft = localStorage.getItem('postDraft')
+    if (draft) {
+      const parsedDraft = JSON.parse(draft)
+      setContent(parsedDraft.content || '')
+      setTone(parsedDraft.tone || '')
+      setCustomToneContent(parsedDraft.customToneContent || '')
+      setSelectedPlatforms(parsedDraft.selectedPlatforms || [])
+      setMediaUrls(parsedDraft.mediaUrls || [])
+    }
+  }, [])
+
+const handleUploadImage = async (file: File): Promise<string | null> => {
+  setUploadLoading(true)
+  try {
+    const fileSizeInMB = file.size / (1024 * 1024)
+    if (fileSizeInMB > 5) {
+      setResult({ success: false, message: 'File too large. Maximum size is 5MB.' })
+      return null
+    }
+
+    const formData = new FormData()
+    formData.append('image', file)
+
+    const response = await axios.post('/api/upload/image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 30000
+    })
+
+    if (response.data.success) {
+      return response.data.imageUrl
+    }
+    return null
+  } catch (error: any) {
+    console.error('Error uploading image:', error)
+    setResult({ 
+      success: false, 
+      message: error.response?.data?.error || 'Failed to upload image' 
+    })
+    return null
+  } finally {
+    setUploadLoading(false)
+  }
+}
+  const handlePublish = async () => {
+    if (!content.trim() || selectedPlatforms.length === 0) {
+      setResult({ success: false, message: 'Please add content and select platforms' })
+      return
+    }
+
+    setPublishLoading(true)
+    setResult(null)
+
+    try {
+      const results = []
+      for (let platform of selectedPlatforms) {
+        if(platform === 'devto') { platform = 'dev_to'}
+        try {
+          const response = await axios.post(`/api/social/${platform}/post`, {
+            content: content.trim(),
+            mediaUrls: mediaUrls
+          })
+          const data = response.data
+          platform = platform === 'dev_to' ? 'devto' : platform
+          if (data.success) {
+            results.push(`${platform}: ✅ Success`)
+          } else {
+            results.push(`${platform}: ❌ ${data.error}`)
+          }
+        } catch (error) {
+          results.push(`${platform}: ❌ Failed to connect`)
+        }
+      }
+
+      const successCount = results.filter(r => r.includes('✅')).length
+      const totalCount = selectedPlatforms.length
+
+      setResult({ 
+        success: successCount > 0,
+        message: `Posted to ${successCount} of ${totalCount} platforms: ${results.join(', ')}`
+      })
+
+      if (successCount === totalCount) {
+        setContent('')
+        setSelectedPlatforms([])
+        setMediaUrls([])
+        localStorage.removeItem('postDraft')
+      }
+
+    } catch (error) {
+      setResult({ success: false, message: 'Failed to publish posts' })
+    } finally {
+      setPublishLoading(false)
+    }
+  }
+
+  const handleSaveToLocal = () => {
+    setPublishLoading(true)
+    try {
+      const draft = {
+        content,
+        tone,
+        customToneContent,
+        selectedPlatforms,
+        mediaUrls,
+        timestamp: new Date().toISOString()
+      }
+      localStorage.setItem('postDraft', JSON.stringify(draft))
+      setResult({ success: true, message: 'Draft saved locally' })
+    } catch (error) {
+      setResult({ success: false, message: 'Failed to save draft' })
+    } finally {
+      setPublishLoading(false)
+    }
+  }
+
+  const togglePlatform = (platform: string) => {
+    if (selectedPlatforms.includes(platform)) {
+      setSelectedPlatforms(prev => prev.filter(p => p !== platform))
+    } else {
+      setSelectedPlatforms(prev => [...prev, platform])
+    }
+  }
+
+  const initializePlatforms = () => {
+    const platforms = []
+    if (hasLinkedin) platforms.push('linkedin')
+    if (hasTwitter) platforms.push('twitter')
+    setSelectedPlatforms(platforms)
+  }
+
+  const handleEnhanceClick = async (enhancementOptions: string[]) => {
+    if (!content.trim() || selectedPlatforms.length === 0) {
+      setResult({ success: false, message: 'Please add content and select platforms' })
+      return
+    }
+
+    if(content.length > 2000) {
+      setResult({ success: false, message: 'Content too long for AI enhancement (max 2000 characters)' })
+      return
+    }
+
+    if(content.length < 50) {
+      setResult({ success: false, message: 'Content too short for AI enhancement (min 50 characters)' })
+      return
+    }
+
+    setAiLoading(true)
+    setShowAISuggestions(true)
+    setSelectedEnhanceOptions(enhancementOptions)
+    
+    try {
+      const response = await axios.post('/api/aiServices/composePostPreview', {
+        content,
+        selectedPlatforms,
+        enhancements: enhancementOptions
+      })
+      
+      setAiSuggestions(response.data.suggestions)
+    } catch (error) {
+      setResult({ success: false, message: 'Failed to generate AI suggestions' })
+      setShowAISuggestions(false)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const handleSelectAIVersion = (platform: string, version: any) => {
+    setContent(version.content)
+    setShowAISuggestions(false)
+  }
+
+  React.useEffect(() => {
+    if (hasLinkedin || hasTwitter) {
+      initializePlatforms()
+    }
+  }, [hasLinkedin, hasTwitter])
+
+  if (connectedAccounts.length === 0) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-white border border-slate-200 rounded-xl p-8 text-center">
+        <Users className="w-16 h-16 text-slate-300 mb-4" />
+        <h2 className="text-2xl font-semibold text-slate-900 mb-2">No Connected Accounts</h2>
+        <p className="text-sm text-slate-500 mb-6">Connect your social media accounts to start composing posts.</p>
+        <Link href="/dashboard/connect-accounts" className="px-4 py-2 text-accent hover:underline text-sm font-medium">
+          Click here to connect account
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-screen flex flex-col bg-white">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        <EditorPanel
+          content={content}
+          setContent={setContent}
+          tone={tone}
+          setTone={setTone}
+          customToneContent={customToneContent}
+          setCustomToneContent={setCustomToneContent}
+          scheduleTime={scheduleTime}
+          setScheduleTime={setScheduleTime}
+          aiLoading={aiLoading}
+          handleEnhanceClick={handleEnhanceClick}
+          selectedEnhanceOptions={selectedEnhanceOptions}
+          setSelectedEnhanceOptions={setSelectedEnhanceOptions}
+          selectedPlatforms={selectedPlatforms}
+          mediaUrls={mediaUrls}
+          setMediaUrls={setMediaUrls}
+          handleUploadImage={handleUploadImage}
+          uploadLoading={uploadLoading}
+          aiLimits={aiLimits}
+        />
+        
+        <PreviewPanel
+          connectedAccounts={connectedAccounts}
+          selectedPlatforms={selectedPlatforms}
+          content={content}
+          mediaUrls={mediaUrls}
+          result={result}
+        />
+      </div>
+
+      <ActionBar
+        connectedAccounts={connectedAccounts}
+        selectedPlatforms={selectedPlatforms}
+        showPlatformSelector={showPlatformSelector}
+        setShowPlatformSelector={setShowPlatformSelector}
+        togglePlatform={togglePlatform}
+        handleSaveToLocal={handleSaveToLocal}
+        handlePublish={handlePublish}
+        publishLoading={publishLoading}
+        scheduleTime={scheduleTime}
+        canPublish={content.trim().length > 0 && selectedPlatforms.length > 0}
+      />
+
+      {showAISuggestions && (
+        <AISuggestionsModal
+          aiLoading={aiLoading}
+          aiSuggestions={aiSuggestions}
+          onSelectVersion={handleSelectAIVersion}
+          onClose={() => setShowAISuggestions(false)}
+          selectedEnhanceOptions={selectedEnhanceOptions}
+        />
+      )}
+    </div>
+  )
+}
+
+export default ComposeContent

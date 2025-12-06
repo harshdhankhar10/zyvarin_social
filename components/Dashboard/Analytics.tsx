@@ -5,15 +5,63 @@ import {
   TrendingUp, TrendingDown, Users, Target, Calendar, 
   BarChart3, PieChart, Filter, Download, MoreVertical,
   CheckCircle, XCircle, Clock, Linkedin, Twitter,
-  ArrowUpRight, ArrowDownRight, RefreshCw
+  ArrowUpRight, ArrowDownRight, RefreshCw, Sparkles,
+  Zap, Wand2, Brain, FileText
 } from 'lucide-react'
 import {
   LineChart, Line, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 import { useRouter } from 'next/navigation'
+import { formatDate } from '@/utils/formatDate'
 
-const Analytics = ({ data }: any) => {
+interface AIUsage {
+  id: string
+  type: string
+  createdAt: Date
+  platforms: string[]
+  enhancements: string[]
+}
+
+interface Overview {
+  totalPosts: number
+  postsThisMonth: number
+  successRate: number
+  successfulPosts: number
+  failedPosts: number
+  totalAiUses: number
+  aiUsesThisMonth: number
+  aiUsesThisWeek: number
+  postsThisWeek: number
+  postsLast30Days: number
+}
+
+interface MonthlyTrend {
+  month: string
+  posts: number
+}
+
+interface AIUsageData {
+  recentUses: AIUsage[]
+  mostUsedEnhancements: Record<string, number>
+  platformUsage: Record<string, number>
+}
+
+interface PlatformStats {
+  total: number
+  successful: number
+  failed: number
+}
+
+interface AnalyticsData {
+  overview: Overview
+  monthlyTrends: MonthlyTrend[]
+  aiUsage: AIUsageData
+  platformPerformance: Record<string, PlatformStats>
+  currentPlan: string | null
+}
+
+const Analytics = ({ data }: { data: AnalyticsData }) => {
   const [timeRange, setTimeRange] = useState('30d')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -34,31 +82,37 @@ const Analytics = ({ data }: any) => {
     }
   }
 
-  const getStatusIcon = (status: string) => {
-    switch(status) {
-      case 'POSTED': return <CheckCircle className="w-4 h-4 text-green-500" />
-      case 'FAILED': return <XCircle className="w-4 h-4 text-red-500" />
-      default: return <Clock className="w-4 h-4 text-yellow-500" />
-    }
-  }
-
   const formatNumber = (num: number) => {
     return num.toLocaleString('en-US')
   }
 
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    })
-  }
+
 
   const refreshData = () => {
     setLoading(true)
     setTimeout(() => setLoading(false), 1000)
     router.refresh()
   }
+
+  const aiEnhancementColors: Record<string, string> = {
+    'Professional': '#3B82F6',
+    'Conversational': '#10B981',
+    'Educational': '#8B5CF6',
+    'Inspirational': '#F59E0B',
+    'Persuasive': '#EF4444',
+    'Casual': '#6B7280',
+    'Short & Punchy': '#EC4899',
+    'Detailed Professional': '#6366F1',
+    'Engaging Story': '#0EA5E9',
+    'Thread Format': '#84CC16',
+    'Twitter Optimized': '#1DA1F2',
+    'LinkedIn Ready': '#0077B5',
+    'Cross-Platform': '#8B5CF6'
+  }
+
+  const topEnhancements = Object.entries(data.aiUsage.mostUsedEnhancements || {})
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -87,10 +141,7 @@ const Analytics = ({ data }: any) => {
                 <option value="90d">Last 90 days</option>
                 <option value="1y">Last year</option>
               </select>
-              <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-                <Download className="w-4 h-4" />
-                Export
-              </button>
+              
             </div>
           </div>
         </div>
@@ -139,21 +190,19 @@ const Analytics = ({ data }: any) => {
           <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 bg-purple-50 rounded-lg">
-                <Users className="w-5 h-5 text-purple-600" />
+                <Sparkles className="w-5 h-5 text-purple-600" />
               </div>
-              <span className="text-sm font-medium text-gray-500">
-                {data.overview.connectedPlatforms} connected
+              <span className="text-sm font-medium text-purple-600 flex items-center">
+                <ArrowUpRight className="w-4 h-4" />
+                {data.overview.aiUsesThisMonth} this month
               </span>
             </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-2">{formatNumber(data.overview.connectedPlatforms)}</h3>
-            <p className="text-sm text-gray-600">Active Platforms</p>
+            <h3 className="text-3xl font-bold text-gray-900 mb-2">{formatNumber(data.overview.totalAiUses)}</h3>
+            <p className="text-sm text-gray-600">AI Enhancements Used</p>
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="flex flex-wrap gap-2">
-                {Object.keys(data.platformPerformance).map(platform => (
-                  <span key={platform} className="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700">
-                    {platform}
-                  </span>
-                ))}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">This Week</span>
+                <span className="text-sm font-semibold text-purple-600">{data.overview.aiUsesThisWeek}</span>
               </div>
             </div>
           </div>
@@ -188,7 +237,13 @@ const Analytics = ({ data }: any) => {
               </div>
               <Filter className="w-5 h-5 text-gray-400" />
             </div>
-            <div className="h-80">
+            {data.currentPlan === "FREE" ? (
+              <div className="flex flex-col items-center justify-center h-80 text-center px-4">
+                <Zap className="w-12 h-12 text-yellow-400 mb-4" />
+                <h4 className="text-lg font-medium text-gray-700 mb-2">Upgrade to Access Analytics</h4>
+              </div>
+            ) : (
+              <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.monthlyTrends}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -219,25 +274,24 @@ const Analytics = ({ data }: any) => {
                 </LineChart>
               </ResponsiveContainer>
             </div>
+            ) }
           </div>
 
           <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Platform Distribution</h3>
-                <p className="text-sm text-gray-500">Posts by social platform</p>
+                <h3 className="text-lg font-semibold text-gray-900">AI Usage Statistics</h3>
+                <p className="text-sm text-gray-500">Most used enhancement types</p>
               </div>
-              <PieChart className="w-5 h-5 text-gray-400" />
+              <Brain className="w-5 h-5 text-gray-400" />
             </div>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPieChart>
                   <Pie
-                    data={Object.entries(data.platformPerformance).map(([platform, stats]: [string, any]) => ({
-                      name: platform.charAt(0).toUpperCase() + platform.slice(1),
-                      value: stats.total,
-                      success: stats.successful,
-                      failed: stats.failed
+                    data={topEnhancements.map(([name, value]) => ({
+                      name,
+                      value
                     }))}
                     cx="50%"
                     cy="50%"
@@ -247,20 +301,166 @@ const Analytics = ({ data }: any) => {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {Object.entries(data.platformPerformance).map(([platform], index) => (
-                      <Cell key={`cell-${index}`} fill={platformColors[platform] || '#8884d8'} />
+                    {topEnhancements.map(([name], index) => (
+                      <Cell key={`cell-${index}`} fill={aiEnhancementColors[name] || '#8884d8'} />
                     ))}
                   </Pie>
                   <Tooltip 
-                    formatter={(value, name, props) => {
-                      if (name === 'value') return [`${value} posts`, 'Total Posts']
-                      return [value, name]
-                    }}
+                    formatter={(value) => [`${value} uses`, 'Count']}
                   />
                   <Legend />
                 </RechartsPieChart>
               </ResponsiveContainer>
             </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="lg:col-span-2 bg-white rounded-xl shadow p-6 border border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">AI Usage History</h3>
+                <p className="text-sm text-gray-500">Recent AI enhancement activities</p>
+              </div>
+              <Wand2 className="w-5 h-5 text-gray-400" />
+            </div>
+            
+            {data.currentPlan === "FREE" ? (
+              <div className="flex flex-col items-center justify-center h-80 text-center px-4">
+                <Zap className="w-12 h-12 text-yellow-400 mb-4" />
+                <h4 className="text-lg font-medium text-gray-700 mb-2">Upgrade to Access AI Usage History</h4>
+              </div>
+            ) : (
+              <div className="space-y-4">
+              {data.aiUsage.recentUses.map((usage: AIUsage) => (
+                <div key={usage.id} className="flex items-start gap-4 p-4 border border-gray-100 rounded-lg hover:bg-gray-50">
+                  <div className="p-2 rounded-lg bg-purple-100">
+                    <Sparkles className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-900">{usage.type.replace('_', ' ')}</span>
+                      <span className="text-xs text-gray-500">
+                        {formatDate(usage.createdAt)}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-medium text-gray-500">Platforms:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {usage.platforms.map((platform: string) => (
+                          <span key={platform} className="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700">
+                            {platform}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-500">Enhancements:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {usage.enhancements.map((enhancement: string) => (
+                          <span 
+                            key={enhancement} 
+                            className="px-2 py-1 text-xs font-medium rounded"
+                            style={{
+                              backgroundColor: `${aiEnhancementColors[enhancement] || '#6B7280'}20`,
+                              color: aiEnhancementColors[enhancement] || '#6B7280'
+                            }}
+                          >
+                            {enhancement}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              {data.aiUsage.recentUses.length === 0 && (
+                <div className="text-center py-12">
+                  <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <h4 className="text-lg font-medium text-gray-700 mb-2">No AI usage yet</h4>
+                  <p className="text-sm text-gray-500">Start using AI enhancements to see history here</p>
+                </div>
+              )}
+            </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">AI Insights</h3>
+                <p className="text-sm text-gray-500">Your AI usage patterns</p>
+              </div>
+              <Brain className="w-5 h-5 text-gray-400" />
+            </div>
+            
+           { data.currentPlan === "FREE" ? (
+              <div className="flex flex-col items-center justify-center h-80 text-center px-4">
+                <p className="text-gray-500">Upgrade to a paid plan to access detailed AI insights.</p>
+              </div>
+           ) : (
+             <div className="space-y-6">
+              <div>
+                <h5 className="text-sm font-medium text-gray-900 mb-3">Most Used Enhancements</h5>
+                <div className="space-y-3">
+                  {topEnhancements.map(([name, count]) => (
+                    <div key={name} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: aiEnhancementColors[name] || '#6B7280' }}
+                        />
+                        <span className="text-sm text-gray-700">{name}</span>
+                      </div>
+                      <span className="text-sm font-semibold text-gray-900">{count} uses</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-100">
+                <h5 className="text-sm font-medium text-gray-900 mb-3">Platform AI Usage</h5>
+                <div className="space-y-3">
+                  {Object.entries(data.aiUsage.platformUsage || {}).map(([platform, count]: [string, number]) => (
+                    <div key={platform} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {getPlatformIcon(platform)}
+                        <span className="text-sm text-gray-700 capitalize">{platform}</span>
+                      </div>
+                      <span className="text-sm font-semibold text-gray-900">{count} times</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-100">
+                <h5 className="text-sm font-medium text-gray-900 mb-3">Usage Summary</h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="text-xs text-gray-500 mb-1">Total Uses</div>
+                    <div className="text-lg font-semibold text-gray-900">{data.overview.totalAiUses}</div>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="text-xs text-gray-500 mb-1">This Month</div>
+                    <div className="text-lg font-semibold text-purple-600">{data.overview.aiUsesThisMonth}</div>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="text-xs text-gray-500 mb-1">This Week</div>
+                    <div className="text-lg font-semibold text-purple-600">{data.overview.aiUsesThisWeek}</div>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="text-xs text-gray-500 mb-1">Avg/Month</div>
+                    <div className="text-lg font-semibold text-gray-900">
+                      {Math.round(data.overview.totalAiUses / 3)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+           )}
           </div>
         </div>
 
@@ -291,13 +491,13 @@ const Analytics = ({ data }: any) => {
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Successful</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Failed</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Success Rate</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Last Used</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">AI Uses</th>
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(data.platformPerformance).map(([platform, stats]: [string, any]) => {
-                  const platformData = data.recentPosts.find((p: any) => p.platform === platform)
+                {Object.entries(data.platformPerformance).map(([platform, stats]: [string, PlatformStats]) => {
                   const successRate = stats.total > 0 ? Math.round((stats.successful / stats.total) * 100) : 0
+                  const aiUses = data.aiUsage.platformUsage?.[platform] || 0
                   
                   return (
                     <tr key={platform} className="border-b border-gray-50 hover:bg-gray-50">
@@ -344,8 +544,9 @@ const Analytics = ({ data }: any) => {
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="text-sm text-gray-600">
-                          {platformData?.postedAt ? formatDate(platformData.postedAt) : 'Never'}
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-purple-500" />
+                          <span className="font-medium text-purple-600">{aiUses}</span>
                         </div>
                       </td>
                     </tr>
@@ -353,139 +554,6 @@ const Analytics = ({ data }: any) => {
                 })}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-2 bg-white rounded-xl shadow p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-                <p className="text-sm text-gray-500">Latest posts and updates</p>
-              </div>
-              <Calendar className="w-5 h-5 text-gray-400" />
-            </div>
-            
-            <div className="space-y-4">
-              {data.recentPosts.slice(0, 5).map((post: any) => (
-                <div key={post.id} className="flex items-start gap-4 p-4 border border-gray-100 rounded-lg hover:bg-gray-50">
-                  <div className="p-2 rounded-lg bg-gray-100">
-                    {getPlatformIcon(post.platform)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-900 capitalize">{post.platform}</span>
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(post.status)}
-                        <span className={`text-xs font-medium px-2 py-1 rounded ${
-                          post.status === 'POSTED' ? 'bg-green-100 text-green-800' :
-                          post.status === 'FAILED' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {post.status}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {post.postedAt ? formatDate(post.postedAt) : 'Not posted'}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-600 line-clamp-2">{post.content}</p>
-                  </div>
-                </div>
-              ))}
-              
-              {data.recentPosts.length === 0 && (
-                <div className="text-center py-12">
-                  <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <h4 className="text-lg font-medium text-gray-700 mb-2">No posts yet</h4>
-                  <p className="text-sm text-gray-500">Start publishing to see your analytics here</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Account Overview</h3>
-                <p className="text-sm text-gray-500">Your account details</p>
-              </div>
-              <Users className="w-5 h-5 text-gray-400" />
-            </div>
-            
-            <div className="space-y-6">
-              <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
-                    <span className="text-xl font-semibold text-indigo-600">
-                      {data.user.name?.charAt(0) || 'U'}
-                    </span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{data.user.name}</h4>
-                    <p className="text-sm text-gray-500">{data.user.email}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Subscription Plan</span>
-                  <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                    data.user.plan === 'FREE' ? 'bg-gray-100 text-gray-800' :
-                    data.user.plan === 'CREATOR' ? 'bg-blue-100 text-blue-800' :
-                    'bg-purple-100 text-purple-800'
-                  }`}>
-                    {data.user.plan || 'FREE'}
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Member Since</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {formatDate(data.user.joinedDate)}
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Connected Platforms</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {data.overview.connectedPlatforms}
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Total Posts</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {formatNumber(data.overview.totalPosts)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="pt-6 border-t border-gray-100">
-                <h5 className="text-sm font-medium text-gray-900 mb-3">Quick Stats</h5>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <div className="text-xs text-gray-500 mb-1">This Week</div>
-                    <div className="text-lg font-semibold text-gray-900">{data.overview.postsThisWeek}</div>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <div className="text-xs text-gray-500 mb-1">This Month</div>
-                    <div className="text-lg font-semibold text-gray-900">{data.overview.postsThisMonth}</div>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <div className="text-xs text-gray-500 mb-1">Success Rate</div>
-                    <div className="text-lg font-semibold text-green-600">{data.overview.successRate}%</div>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <div className="text-xs text-gray-500 mb-1">Avg. Posts/Day</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {(data.overview.totalPosts / 30).toFixed(1)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

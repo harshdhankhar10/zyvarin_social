@@ -2,6 +2,64 @@ import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo"
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 
+async function uploadImageToLinkedin(imageUrl: string, accessToken: string): Promise<string | null> {
+  try {
+    const response = await fetch(imageUrl)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.statusText}`)
+    }
+
+    const imageBuffer = await response.arrayBuffer()
+    const base64Image = Buffer.from(imageBuffer).toString('base64')
+
+    const registerResponse = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        registerUploadRequest: {
+          recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
+          owner: `urn:li:person:${process.env.LINKEDIN_USER_ID || "YOUR_LINKEDIN_USER_ID"}`,
+          serviceRelationships: [{
+            relationshipType: "OWNER",
+            identifier: "urn:li:userGeneratedContent"
+          }]
+        }
+      })
+    })
+
+    if (!registerResponse.ok) {
+      const error = await registerResponse.text()
+      throw new Error(`LinkedIn register upload failed: ${error}`)
+    }
+
+    const registerData = await registerResponse.json()
+    const uploadUrl = registerData.value.uploadMechanism['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'].uploadUrl
+    const asset = registerData.value.asset
+
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/octet-stream',
+      },
+      body: base64Image
+    })
+
+    if (!uploadResponse.ok) {
+      const error = await uploadResponse.text()
+      throw new Error(`LinkedIn upload failed: ${error}`)
+    }
+
+    return asset
+  } catch (error) {
+    console.error('Error uploading image to LinkedIn:', error)
+    return null
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const session = await currentLoggedInUserInfo()
@@ -20,6 +78,12 @@ export async function POST(request: Request) {
 
     if (!content?.trim()) {
       return NextResponse.json({ error: "Content is required" }, { status: 400 })
+    }
+
+    if (content.length > 3000) {
+      return NextResponse.json({ 
+        error: "LinkedIn posts are limited to 3000 characters" 
+      }, { status: 400 })
     }
 
     const user = await prisma.user.findUnique({
@@ -78,13 +142,28 @@ export async function POST(request: Request) {
     }
 
     if (mediaUrls.length > 0) {
-      postPayload.specificContent["com.linkedin.ugc.ShareContent"].shareMediaCategory = "ARTICLE"
-      postPayload.specificContent["com.linkedin.ugc.ShareContent"].media = mediaUrls.map((url: string) => ({
-        status: "READY",
-        description: { text: "" },
-        media: url,
-        title: { text: "" }
-      }))
+      const assets: string[] = []
+      
+      for (const mediaUrl of mediaUrls) {
+        try {
+          const asset = await uploadImageToLinkedin(mediaUrl, linkedinProvider.access_token)
+          if (asset) {
+            assets.push(asset)
+          }
+        } catch (error) {
+          console.error(`Failed to upload media ${mediaUrl}:`, error)
+        }
+      }
+
+      if (assets.length > 0) {
+        postPayload.specificContent["com.linkedin.ugc.ShareContent"].shareMediaCategory = "IMAGE"
+        postPayload.specificContent["com.linkedin.ugc.ShareContent"].media = assets.map((asset: string) => ({
+          status: "READY",
+          description: { text: "" },
+          media: asset,
+          title: { text: "" }
+        }))
+      }
     }
 
     const linkedinResponse = await fetch('https://api.linkedin.com/v2/ugcPosts', {
@@ -136,7 +215,8 @@ export async function POST(request: Request) {
       success: true,
       postId: post.id,
       linkedinPostId: linkedinPostIdResult,
-      message: "Posted to LinkedIn successfully!"
+      mediaCount: mediaUrls.length,
+      message: `Posted to LinkedIn successfully! ${mediaUrls.length > 0 ? `With ${mediaUrls.length} image(s)` : ''}`
     })
 
   } catch (error: any) {

@@ -18,23 +18,33 @@ const SignInPage = () => {
   const router = useRouter();
 
   const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-try {
-      await signIn('credentials', { email, password, callbackUrl: '/dashboard' });
-      
-      setLoading(false);
-      setSuccess('Signed in successfully! Redirecting to dashboard...');
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 2500);
-} catch (error:any) {
-      setError(error.message || 'An unexpected error occurred.');
-}finally {
-      setLoading(false);  
-}
-  };
-
+        e.preventDefault()
+        try {
+            setLoading(true)
+            const response = await signIn('credentials', {
+                email, password, redirect: false
+            })
+            if (response?.error) {
+                setError(response.error);
+                setTimeout(() => {
+                    if (response.error === "Please verify your email before logging in.") {
+                        localStorage.setItem('emailForVerification', email);
+                        router.push("/verify-email")
+                    }
+                }, 1500)
+            } else {
+                setSuccess("Login Sucessfull. Redirecting to Dashboard...")
+                setTimeout(() => {
+                    router.push("/dashboard/user")
+                }, 1500)
+            }
+        } catch (error) {
+            console.log(error)
+            setError("An error occurred during login");
+        } finally {
+            setLoading(false)
+        }
+    }
   const signInWithProvider = async (provider: string) => {
     setLoading(true);
     try {

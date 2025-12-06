@@ -1,0 +1,47 @@
+import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo"
+import { NextResponse } from "next/server"
+import crypto from "crypto"
+
+export async function GET() {
+  try {
+    const session = await currentLoggedInUserInfo()
+    
+    if (!session) {
+      return NextResponse.redirect('/api/auth/signin')
+    }
+
+    const codeVerifier = crypto.randomBytes(32).toString('base64url')
+    const codeChallenge = crypto
+      .createHash('sha256')
+      .update(codeVerifier)
+      .digest('base64url')
+
+    const stateData = {
+      userId: session.id,
+      timestamp: Date.now(),
+      codeVerifier: codeVerifier,
+      nonce: crypto.randomBytes(16).toString('hex')
+    }
+
+    const state = Buffer.from(JSON.stringify(stateData)).toString('base64')
+    
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+    const redirectUri = `${baseUrl}/api/social/twitter/callback`
+
+    const twitterAuthUrl = new URL('https://twitter.com/i/oauth2/authorize')
+    twitterAuthUrl.searchParams.set('response_type', 'code')
+    twitterAuthUrl.searchParams.set('client_id', process.env.X_CLIENT_ID!)
+    twitterAuthUrl.searchParams.set('redirect_uri', redirectUri)
+twitterAuthUrl.searchParams.set('scope', 'tweet.read tweet.write users.read offline.access')
+    twitterAuthUrl.searchParams.set('state', state)
+    twitterAuthUrl.searchParams.set('code_challenge', codeChallenge)
+    twitterAuthUrl.searchParams.set('code_challenge_method', 'S256')
+
+    return NextResponse.redirect(twitterAuthUrl.toString())
+    
+  } catch (error) {
+    console.error('Twitter connect error:', error)
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+    return NextResponse.redirect(`${baseUrl}/dashboard/connect-accounts?error=twitter_connection_failed`)
+  }
+}

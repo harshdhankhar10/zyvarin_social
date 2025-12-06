@@ -41,7 +41,7 @@ const Footer = () => {
                     <div className="col-span-2 md:col-span-1">
                         <div className="flex items-center gap-4 -mt-16">
                             <Image
-                                src="/zyvarin-logo.png"
+                                src="/zyvarin-logo_1.png"
                                 alt="Zyvarin Logo"
                                 width={126}
                                 height={126}

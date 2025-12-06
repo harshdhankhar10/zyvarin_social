@@ -36,7 +36,7 @@ const Navbar = () => {
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3">
                 <Image
-                  src="/zyvarin-logo.png"
+                  src="/zyvarin-logo_1.png"
                   alt="Zyvarin Logo"
                   width={126}
                   height={126}
