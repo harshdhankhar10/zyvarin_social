@@ -7,7 +7,8 @@ import {
   getRemainingPosts, 
   canCreateAIContent, 
   canPublishPost,
-  getUsageProgress
+  getUsageProgress,
+  currentUserPlan
 } from '../pricingUtils'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
@@ -98,6 +99,7 @@ const page = async () => {
         hasLinkedin={!!linkedinAccount}
         hasTwitter={!!twitterAccount}
         aiLimits={limits.ai}
+        userPlan={await currentUserPlan(user.id)}
       />
     </div>
   )

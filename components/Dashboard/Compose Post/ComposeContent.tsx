@@ -14,7 +14,8 @@ const ComposeContent = ({
   connectedAccounts, 
   hasLinkedin, 
   hasTwitter ,
-  aiLimits
+  aiLimits,
+  userPlan
 }: { 
   connectedAccounts: Array<{ provider: string; profileData: any }>
   hasLinkedin: boolean
@@ -26,7 +27,8 @@ const ComposeContent = ({
     total: number;
     percentage: number;
     hasReachedLimit: boolean;
-  }
+  },
+  userPlan: string | null
 }) => {
   const [content, setContent] = useState('')
   const [tone, setTone] = useState('')
@@ -256,6 +258,7 @@ const handleUploadImage = async (file: File): Promise<string | null> => {
           handleUploadImage={handleUploadImage}
           uploadLoading={uploadLoading}
           aiLimits={aiLimits}
+          userPlan={userPlan}
         />
         
         <PreviewPanel

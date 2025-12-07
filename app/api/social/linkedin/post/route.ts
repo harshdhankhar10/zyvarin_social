@@ -2,7 +2,11 @@ import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo"
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 
-async function uploadImageToLinkedin(imageUrl: string, accessToken: string): Promise<string | null> {
+async function uploadImageToLinkedin(
+  imageUrl: string, 
+  accessToken: string,
+  providerUserId: string | null,
+): Promise<string | null> {
   try {
     const response = await fetch(imageUrl)
     if (!response.ok) {
@@ -10,7 +14,6 @@ async function uploadImageToLinkedin(imageUrl: string, accessToken: string): Pro
     }
 
     const imageBuffer = await response.arrayBuffer()
-    const base64Image = Buffer.from(imageBuffer).toString('base64')
 
     const registerResponse = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
       method: 'POST',
@@ -21,7 +24,7 @@ async function uploadImageToLinkedin(imageUrl: string, accessToken: string): Pro
       body: JSON.stringify({
         registerUploadRequest: {
           recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
-          owner: `urn:li:person:${process.env.LINKEDIN_USER_ID || "YOUR_LINKEDIN_USER_ID"}`,
+          owner: `urn:li:person:${providerUserId}`,
           serviceRelationships: [{
             relationshipType: "OWNER",
             identifier: "urn:li:userGeneratedContent"
@@ -45,7 +48,7 @@ async function uploadImageToLinkedin(imageUrl: string, accessToken: string): Pro
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/octet-stream',
       },
-      body: base64Image
+      body: imageBuffer
     })
 
     if (!uploadResponse.ok) {
@@ -143,16 +146,34 @@ export async function POST(request: Request) {
 
     if (mediaUrls.length > 0) {
       const assets: string[] = []
+      let uploadFailed = false
+      let uploadError = ""
       
       for (const mediaUrl of mediaUrls) {
         try {
-          const asset = await uploadImageToLinkedin(mediaUrl, linkedinProvider.access_token)
+          const asset = await uploadImageToLinkedin(
+            mediaUrl, 
+            linkedinProvider.access_token, 
+            linkedinProvider?.providerUserId
+          )
           if (asset) {
             assets.push(asset)
+          } else {
+            uploadFailed = true
+            uploadError = "One or more images failed to upload"
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Failed to upload media ${mediaUrl}:`, error)
+          uploadFailed = true
+          uploadError = error.message || "Image upload failed"
         }
+      }
+
+      if (uploadFailed) {
+        return NextResponse.json({
+          error: "Image upload failed",
+          details: uploadError
+        }, { status: 400 })
       }
 
       if (assets.length > 0) {

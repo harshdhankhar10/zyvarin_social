@@ -40,7 +40,8 @@ interface EditorPanelProps {
     total: number;
     percentage: number;
     hasReachedLimit: boolean;
-  }
+  },
+  userPlan: string | null
 }
 
 const EditorPanel: React.FC<EditorPanelProps> = ({
@@ -61,7 +62,8 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
   setMediaUrls,
   handleUploadImage,
   uploadLoading,
-  aiLimits
+  aiLimits,
+  userPlan  
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [imageUpload, setImageUpload] = useState<File | null>(null)
@@ -347,7 +349,7 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
               className="hidden"
               disabled={uploadLoading}
             />
-            <button 
+            <button  
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadLoading}
               className={`p-2 rounded transition-colors flex items-center gap-1 ${
@@ -365,9 +367,12 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
                 {uploadLoading ? 'Uploading...' : 'Add Image'}
               </span>
             </button>
-            <button className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors">
+           {userPlan !== 'FREE' && (
+             <button onClick={() => { alert(`Your current plan (${userPlan}) allows scheduling posts. Scheduling feature coming soon!`) }}
+             className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors">
               <Calendar className="w-4 h-4" />
             </button>
+           )}
           </div>
           <div className="flex items-center gap-3">
             <span className={`text-xs ${content.length > 3000 ? 'text-red-600' : 'text-slate-500'}`}>
