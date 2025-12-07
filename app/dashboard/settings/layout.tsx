@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
   User, Settings as SettingsIcon, CreditCard, Shield, 
-  Globe as WebIcon, ChevronRight
+  Globe as WebIcon, ChevronRight, Receipt
 } from 'lucide-react'
 
 export default function SettingsLayout({
@@ -19,6 +19,7 @@ export default function SettingsLayout({
   const tabs = [
     { id: 'profile', label: 'Profile', icon: <User className="w-4 h-4" />, href: '/dashboard/settings/profile' },
     { id: 'billing', label: 'Billing', icon: <CreditCard className="w-4 h-4" />, href: '/dashboard/settings/billing' },
+    { id: 'transactions-history', label: 'Transaction History', icon: <Receipt className="w-4 h-4" />, href: '/dashboard/settings/transactions-history?page=1' },
     { id: 'integrations', label: 'Integrations', icon: <WebIcon className="w-4 h-4" />, href: '/dashboard/settings/integrations' },
     { id: 'security', label: 'Security', icon: <Shield className="w-4 h-4" />, href: '/dashboard/settings/security' }
   ]

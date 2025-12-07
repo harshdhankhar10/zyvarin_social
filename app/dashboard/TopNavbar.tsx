@@ -1,8 +1,20 @@
 "use client"
-import React, {useState} from 'react';
-import { Search, HelpCircle, Bell, ChevronDown, Menu } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { HelpCircle, Bell, ChevronDown, User, Settings, CreditCard, Receipt, Shield, LogOut } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { signOut } from 'next-auth/react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import NotificationModal from '@/components/Dashboard/NotificationModal';
+import SearchBar from '@/components/Dashboard/SearchBar';
+import axios from 'axios';
 
 interface User {
   fullName: string;
@@ -10,7 +22,59 @@ interface User {
   avatarUrl: string | null;
 }
 
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  senderType: 'ADMIN' | 'SYSTEM';
+  createdAt: string;
+}
+
 const TopNavbar: React.FC<{ user: User }> = ({ user }) => {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await fetch('/api/notifications');
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data.notifications);
+        setUnreadCount(data.unreadCount);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  const handleNotificationClick = async () => {
+    const hasUnread = notifications.some(n => !n.isRead);
+    
+    if (hasUnread && !isLoadingNotifications) {
+      setIsLoadingNotifications(true);
+      try {
+        const response = await axios.post('/api/notifications/mark-read');
+        
+        if (response.status === 200 && response.data.success) {
+          setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+          setUnreadCount(0);
+        }
+      } catch (error) {
+        console.error('Error marking notifications as read:', error);
+      } finally {
+        setIsLoadingNotifications(false);
+      }
+    }
+    
+    setIsModalOpen(true);
+  };
   return (
     <header className="fixed w-full h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-20">
       <div className="flex items-center gap-4">
@@ -34,37 +98,108 @@ const TopNavbar: React.FC<{ user: User }> = ({ user }) => {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="relative hidden sm:block">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Search..." 
-            className="pl-9 pr-4 py-2 bg-slate-100 border-none rounded-full text-sm w-48 md:w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-600 transition-all md:focus:w-80"
-          />
+        <div className="relative hidden sm:block w-48 md:w-64">
+          <SearchBar />
         </div>
         
         <div className="h-6 w-px bg-slate-200 mx-1 hidden md:block"></div>
         
-        <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors hidden sm:block">
+        <Link href="/dashboard/help" className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors hidden sm:block">
           <HelpCircle className="w-5 h-5" />
-        </button>
-        <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors relative">
+        </Link>
+        <button 
+          onClick={handleNotificationClick}
+          className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors relative"
+          disabled={isLoadingNotifications}
+        >
           <Bell className="w-5 h-5" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+          {unreadCount > 0 && (
+            <>
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            </>
+          )}
         </button>
         
-        <button className="flex items-center gap-2 pl-2 pr-1 py-1 hover:bg-slate-100 rounded-full transition-colors">
-          <Image
-            src={ user.avatarUrl || '/default-avatar.png' }
-            alt="User" 
-            width={32}
-            height={32}
-            className="w-8 h-8 rounded-full border border-slate-200"
-          />
-          <span className="hidden sm:block text-sm font-medium text-slate-700">{user.fullName}</span>
-          <ChevronDown className="w-4 h-4 text-slate-400 hidden sm:block" />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-2 pl-2 pr-1 py-1 hover:bg-slate-100 rounded-full transition-colors">
+              <Image
+                src={ user.avatarUrl || '/default-avatar.png' }
+                alt="User" 
+                width={32}
+                height={32}
+                className="w-8 h-8 rounded-full border border-slate-200"
+              />
+              <span className="hidden sm:block text-sm font-medium text-slate-700">{user.fullName}</span>
+              <ChevronDown className="w-4 h-4 text-slate-400 hidden sm:block" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>
+              <div className="flex flex-col">
+                <span className="font-medium text-gray-900">{user.fullName}</span>
+                <span className="text-xs text-gray-500">{user.email}</span>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings/profile" className="flex items-center gap-2 cursor-pointer">
+                <User className="w-4 h-4" />
+                <span>Profile</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings" className="flex items-center gap-2 cursor-pointer">
+                <Settings className="w-4 h-4" />
+                <span>Settings</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings/billing" className="flex items-center gap-2 cursor-pointer">
+                <CreditCard className="w-4 h-4" />
+                <span>Billing & Plans</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings/transactions-history?page=1" className="flex items-center gap-2 cursor-pointer">
+                <Receipt className="w-4 h-4" />
+                <span>Transaction History</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings/security" className="flex items-center gap-2 cursor-pointer">
+                <Shield className="w-4 h-4" />
+                <span>Security</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/help" className="flex items-center gap-2 cursor-pointer">
+                <HelpCircle className="w-4 h-4" />
+                <span>Help & Support</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => signOut({ callbackUrl: '/signin' })}
+              className="flex items-center gap-2 cursor-pointer text-red-600 hover:text-white"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        notifications={notifications}
+      />
     </header>
   );
 };
