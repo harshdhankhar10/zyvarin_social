@@ -18,7 +18,6 @@ export default function SettingsLayout({
 
   const tabs = [
     { id: 'profile', label: 'Profile', icon: <User className="w-4 h-4" />, href: '/dashboard/settings/profile' },
-    { id: 'workspace', label: 'Workspace', icon: <SettingsIcon className="w-4 h-4" />, href: '/dashboard/settings/workspace' },
     { id: 'billing', label: 'Billing', icon: <CreditCard className="w-4 h-4" />, href: '/dashboard/settings/billing' },
     { id: 'integrations', label: 'Integrations', icon: <WebIcon className="w-4 h-4" />, href: '/dashboard/settings/integrations' },
     { id: 'security', label: 'Security', icon: <Shield className="w-4 h-4" />, href: '/dashboard/settings/security' }
