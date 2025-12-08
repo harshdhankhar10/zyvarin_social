@@ -9,7 +9,14 @@ const Footer = () => {
         Solutions: ["For Creators", "For Agencies", "For Startups", "For Enterprise"],
         Resources: ["Blog", "Guides", "Help Center", "Webinars", "Case Studies"],
         Company: ["About", "Careers", "Press", "Contact", "Partners"],
-        Legal: ["Privacy Policy", "Terms of Service", "Security", "GDPR"],
+        Legal: [
+            { label: "Privacy Policy", href: "/legal/privacy-policy" },
+            { label: "Terms of Service", href: "/legal/terms-of-service" },
+            { label: "Cookie Policy", href: "/legal/cookie-policy" },
+            { label: "Acceptable Use Policy", href: "/legal/acceptable-use-policy" },
+            { label: "Data Processing Agreement", href: "/legal/dpa" },
+            { label: "Security & Compliance", href: "/legal/security-policy" },
+        ],
     };
 
     return (
@@ -61,16 +68,21 @@ const Footer = () => {
                         <div key={category}>
                             <h4 className="font-semibold text-foreground mb-4 text-sm">{category}</h4>
                             <ul className="space-y-3">
-                                {links.map((link, index) => (
-                                    <li key={index}>
-                                        <Link
-                                            href="#"
-                                            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                                        >
-                                            {link}
-                                        </Link>
-                                    </li>
-                                ))}
+                                {links.map((link, index) => {
+                                    const isObject = typeof link === 'object';
+                                    const label = isObject ? link.label : link;
+                                    const href = isObject ? link.href : '#';
+                                    return (
+                                        <li key={index}>
+                                            <Link
+                                                href={href}
+                                                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                            >
+                                                {label}
+                                            </Link>
+                                        </li>
+                                    );
+                                })}
                             </ul>
                         </div>
                     ))}

@@ -20,11 +20,11 @@ const Navbar = () => {
   }, []);
 
   const navItems = [
-    { label: "Product", hasDropdown: true },
-    { label: "Solutions", hasDropdown: true },
-    { label: "Pricing", hasDropdown: false },
-    { label: "Resources", hasDropdown: true },
-    { label: "Enterprise", hasDropdown: false },
+    { label: "About", href: "/about" },
+    { label: "Use Cases", href: "/use-cases" },
+    { label: "Compare", href: "/compare" },
+    { label: "Blog", href: "/blog" },
+    { label: "Help", href: "/help" },
   ];
   const router = useRouter();
 
@@ -52,10 +52,10 @@ const Navbar = () => {
                 {navItems.map((item) => (
                   <button
                     key={item.label}
+                    onClick={() => router.push(item.href)}
                     className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background rounded-lg transition-all duration-200"
                   >
                     {item.label}
-                    {item.hasDropdown && <ChevronDown className="w-3.5 h-3.5 opacity-60" />}
                   </button>
                 ))}
               </div>
@@ -96,10 +96,13 @@ const Navbar = () => {
                 {navItems.map((item) => (
                   <button
                     key={item.label}
+                    onClick={() => {
+                      router.push(item.href);
+                      setIsOpen(false);
+                    }}
                     className="flex items-center justify-between py-3 px-4 text-foreground hover:bg-secondary rounded-xl transition-colors text-left"
                   >
                     {item.label}
-                    {item.hasDropdown && <ChevronDown className="w-4 h-4 opacity-50" />}
                   </button>
                 ))}
                 <hr className="my-3 border-border/30" />
