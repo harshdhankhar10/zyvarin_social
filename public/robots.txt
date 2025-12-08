@@ -1,0 +1,8 @@
+# zyvarin.com robots.txt
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard/
+
+# Sitemap location
+Sitemap: https://zyvarin.com/sitemap.xml
