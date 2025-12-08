@@ -22,6 +22,14 @@ const Page = async () => {
         },
         include: {
           posts: {
+            select: {
+              id: true,
+              content: true,
+              status: true,
+              postedAt: true,
+              createdAt: true,
+              mediaUrls: true
+            },
             orderBy: {
               createdAt: 'desc'
             },
