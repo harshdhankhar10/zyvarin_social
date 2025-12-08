@@ -11,6 +11,9 @@ import {
   Settings,
   LogOut,
   Link2Icon,
+  Calendar,
+  Calendar1,
+  Calendar1Icon,
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -19,6 +22,7 @@ const Sidebar = () => {
 
   const navItems = [
     { id: '/dashboard', icon: LayoutGrid, label: 'Home', priority: 'high' },
+    { id: '/dashboard/calendar', icon: Calendar1Icon, label: 'Calendar', priority: 'high' },
     { id: '/dashboard/compose', icon: PenTool, label: 'Compose', priority: 'high' },
     { id: '/dashboard/analytics', icon: BarChart3, label: 'Analytics', priority: 'high' },
     { id: '/dashboard/connect-accounts', icon: Link2Icon, label: 'Connect Accounts', priority: 'high' },

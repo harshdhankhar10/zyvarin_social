@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { content, mediaUrls = [] } = await request.json()
+    const { content, mediaUrls = [], postType = 'immediate', scheduledFor = null, postId = null, fromCron = false } = await request.json()
 
     if (!content?.trim()) {
       return NextResponse.json({ error: "Content is required" }, { status: 400 })
@@ -89,26 +89,68 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: {
-        id: session.id,
-      },
-    })
+    let linkedinProvider;
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    if (fromCron && postId) {
+      // Cron execution: get provider from the existing post
+      const existingPost = await prisma.post.findUnique({
+        where: { id: postId },
+        include: {
+          socialProvider: true
+        }
+      });
+
+      if (!existingPost) {
+        return NextResponse.json({ error: "Post not found" }, { status: 404 });
+      }
+
+      linkedinProvider = existingPost.socialProvider;
+    } else {
+      // Frontend execution: get provider from session
+      const user = await prisma.user.findUnique({
+        where: {
+          id: session.id,
+        },
+      });
+
+      if (!user) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+
+      linkedinProvider = await prisma.socialProvider.findFirst({
+        where: {
+          userId: user.id,
+          provider: 'linkedin',
+          isConnected: true,
+        },
+      });
     }
-
-    const linkedinProvider = await prisma.socialProvider.findFirst({
-      where: {
-        userId: user.id,
-        provider: 'linkedin',
-        isConnected: true,
-      },
-    })
 
     if (!linkedinProvider?.access_token) {
       return NextResponse.json({ error: "LinkedIn not connected" }, { status: 400 })
+    }
+
+    const isScheduled = postType === 'scheduled'
+    
+    if (isScheduled && scheduledFor) {
+      const post = await prisma.post.create({
+        data: {
+          socialProviderId: linkedinProvider.id,
+          content,
+          mediaUrls,
+          status: 'SCHEDULED',
+          scheduledFor: new Date(scheduledFor),
+          postedAt: null
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        postId: post.id,
+        scheduled: true,
+        scheduledFor: scheduledFor,
+        message: `Post scheduled for LinkedIn successfully!`
+      })
     }
 
     const now = Math.floor(Date.now() / 1000)
@@ -201,15 +243,27 @@ export async function POST(request: Request) {
       const errorText = await linkedinResponse.text()
       console.error('LinkedIn API error:', errorText)
 
-      await prisma.post.create({
-        data: {
-          socialProviderId: linkedinProvider.id,
-          content,
-          mediaUrls,
-          status: 'FAILED',
-          errorMessage: `LinkedIn API error: ${linkedinResponse.statusText}`,
-        }
-      })
+      if (postId) {
+        // Update existing post
+        await prisma.post.update({
+          where: { id: postId },
+          data: {
+            status: 'FAILED',
+            errorMessage: `LinkedIn API error: ${linkedinResponse.statusText}`,
+          }
+        })
+      } else {
+        // Create new failed post
+        await prisma.post.create({
+          data: {
+            socialProviderId: linkedinProvider.id,
+            content,
+            mediaUrls,
+            status: 'FAILED',
+            errorMessage: `LinkedIn API error: ${linkedinResponse.statusText}`,
+          }
+        })
+      }
 
       throw new Error(`LinkedIn posting failed: ${linkedinResponse.statusText}`)
     }
@@ -217,15 +271,27 @@ export async function POST(request: Request) {
     const linkedinResult = await linkedinResponse.json()
     const linkedinPostIdResult = linkedinResult.id
 
-    const post = await prisma.post.create({
-      data: {
-        socialProviderId: linkedinProvider.id,
-        content,
-        mediaUrls,
-        postedAt: new Date(),
-        status: 'POSTED',
-      }
-    })
+    let post;
+    if (postId) {
+      post = await prisma.post.update({
+        where: { id: postId },
+        data: {
+          status: 'POSTED',
+          postedAt: new Date()
+        }
+      })
+    } else {
+      post = await prisma.post.create({
+        data: {
+          socialProviderId: linkedinProvider.id,
+          content,
+          mediaUrls,
+          status: isScheduled ? 'SCHEDULED' : 'POSTED',
+          scheduledFor: isScheduled && scheduledFor ? new Date(scheduledFor) : null,
+          postedAt: isScheduled ? null : new Date()
+        }
+      })
+    }
 
     await prisma.socialProvider.update({
       where: { id: linkedinProvider.id },

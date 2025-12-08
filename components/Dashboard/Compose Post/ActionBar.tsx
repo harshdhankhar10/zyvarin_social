@@ -121,6 +121,22 @@ const ActionBar: React.FC<ActionBarProps> = ({
         </div>
         
         <div className="flex items-center gap-2">
+          {scheduleTime !== 'now' && (
+            <div className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-md flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+                <span className="text-xs font-medium text-indigo-700">Scheduled for</span>
+              </div>
+              <span className="text-xs font-semibold text-indigo-900">
+                {new Date(scheduleTime).toLocaleString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  hour12: true
+                })}
+              </span>
+            </div>
+          )}
           <button 
             onClick={handleSaveToLocal}
             className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-md transition-colors flex items-center gap-2"
@@ -142,10 +158,8 @@ const ActionBar: React.FC<ActionBarProps> = ({
             ) : (
               <Send className="w-4 h-4" />
             )}
-            {publishLoading ? 'Publishing...' : 
-             scheduleTime === 'now' ? 'Publish' : 
-             scheduleTime === 'schedule' ? 'Schedule' : 
-             'Save Draft'}
+            {publishLoading ? (scheduleTime !== 'now' ? 'Scheduling...' : 'Publishing...') : 
+             scheduleTime !== 'now' ? 'Schedule Post' : 'Publish Now'}
           </button>
         </div>
       </div>

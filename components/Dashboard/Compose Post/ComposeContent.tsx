@@ -2,12 +2,14 @@
 
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
+import { useRouter } from 'next/navigation'
 import EditorPanel from './EditorPanel'
 import PreviewPanel from './PreviewPanel'
 import ActionBar from './ActionBar'
 import AISuggestionsModal from './AISuggestionsModal'
 import { Users } from 'lucide-react'
 import Link from 'next/link'
+import { publishToMultiplePlatforms } from '@/utils/publishPost'
 
 
 const ComposeContent = ({ 
@@ -30,6 +32,7 @@ const ComposeContent = ({
   },
   userPlan: string | null
 }) => {
+  const router = useRouter()
   const [content, setContent] = useState('')
   const [tone, setTone] = useState('')
   const [customToneContent, setCustomToneContent] = useState('')
@@ -44,6 +47,7 @@ const ComposeContent = ({
   const [aiSuggestions, setAiSuggestions] = useState<any>(null)
   const [selectedEnhanceOptions, setSelectedEnhanceOptions] = useState<string[]>(['Professional'])
   const [mediaUrls, setMediaUrls] = useState<string[]>([])
+  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null)
 
   useEffect(() => {
     const draft = localStorage.getItem('postDraft')
@@ -56,6 +60,22 @@ const ComposeContent = ({
       setMediaUrls(parsedDraft.mediaUrls || [])
     }
   }, [])
+
+  // Countdown and redirect effect
+  useEffect(() => {
+    if (redirectCountdown === null) return
+
+    if (redirectCountdown === 0) {
+      router.push('/dashboard/calendar')
+      return
+    }
+
+    const timer = setTimeout(() => {
+      setRedirectCountdown(redirectCountdown - 1)
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [redirectCountdown, router])
 
 const handleUploadImage = async (file: File): Promise<string | null> => {
   setUploadLoading(true)
@@ -98,48 +118,47 @@ const handleUploadImage = async (file: File): Promise<string | null> => {
     setPublishLoading(true)
     setResult(null)
 
+    const isScheduled = scheduleTime !== 'now'
+    const postType = isScheduled ? 'scheduled' : 'immediate'
+    const scheduledFor = isScheduled ? new Date(scheduleTime).toISOString() : null
+
     try {
-      const results = []
-      for (let platform of selectedPlatforms) {
-        if(platform === 'devto') { platform = 'dev_to'}
-        try {
-          const response = await axios.post(`/api/social/${platform}/post`, {
-            content: content.trim(),
-            mediaUrls: mediaUrls
-          })
-          const data = response.data
-          platform = platform === 'dev_to' ? 'devto' : platform
-          if (data.success) {
-            results.push(`${platform}: ✅ Success`)
-          } else {
-            results.push(`${platform}: ❌ ${data.error}`)
-          }
-        } catch (error) {
-          results.push(`${platform}: ❌ Failed to connect`)
-        }
-      }
-
-      const successCount = results.filter(r => r.includes('✅')).length
-      const totalCount = selectedPlatforms.length
-
+      const { successCount, totalCount, message } = await publishToMultiplePlatforms(
+        selectedPlatforms,
+        content.trim(),
+        mediaUrls,
+        postType,
+        scheduledFor
+      )
+      
       setResult({ 
         success: successCount > 0,
-        message: `Posted to ${successCount} of ${totalCount} platforms: ${results.join(', ')}`
+        message
       })
 
       if (successCount === totalCount) {
         setContent('')
         setSelectedPlatforms([])
         setMediaUrls([])
+        setScheduleTime('now')
         localStorage.removeItem('postDraft')
+
+        if (isScheduled) {
+          setRedirectCountdown(2)
+        }
       }
 
-    } catch (error) {
-      setResult({ success: false, message: 'Failed to publish posts' })
+    } catch (error: any) {
+      const action = isScheduled ? 'schedule' : 'publish'
+      setResult({ 
+        success: false, 
+        message: `❌ Failed to ${action} posts: ${error.message || 'Unknown error'}`
+      })
     } finally {
       setPublishLoading(false)
     }
   }
+  
 
   const handleSaveToLocal = () => {
     setPublishLoading(true)
@@ -267,6 +286,7 @@ const handleUploadImage = async (file: File): Promise<string | null> => {
           content={content}
           mediaUrls={mediaUrls}
           result={result}
+          redirectCountdown={redirectCountdown}
         />
       </div>
 

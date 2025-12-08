@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
-import { AlertCircle, Users, Check } from 'lucide-react'
+import { AlertCircle, Users, Check, Loader } from 'lucide-react'
 import { getProviderIcon, getProviderColor, getProviderBgColor, getUsername, getProfileImage } from '@/utils/socialUtils'
 
 interface PreviewPanelProps {
@@ -10,6 +10,7 @@ interface PreviewPanelProps {
   content: string
   mediaUrls: string[]
   result: { success?: boolean; message?: string } | null
+  redirectCountdown: number | null
 }
 
 const PreviewPanel: React.FC<PreviewPanelProps> = ({
@@ -17,7 +18,8 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
   selectedPlatforms,
   content,
   mediaUrls,
-  result
+  result,
+  redirectCountdown
 }) => {
   const [activeTab, setActiveTab] = useState<string>('twitter')
   
@@ -165,7 +167,18 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
               ) : (
                 <AlertCircle className="w-4 h-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
               )}
-              <div className="text-sm">{result.message}</div>
+              <div className="flex-1">
+                <div className="text-sm font-medium">{result.message}</div>
+                {redirectCountdown !== null && result.success && (
+                  <div className="mt-3 pt-3 border-t border-green-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Loader className="w-4 h-4 animate-spin text-green-600" />
+                      <span className="text-xs font-medium">Redirecting to calendar...</span>
+                    </div>
+                    <span className="text-lg font-bold text-green-600">{redirectCountdown}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

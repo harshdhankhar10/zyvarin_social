@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { content, mediaUrls = [] } = await request.json()
+    const { content, mediaUrls = [], postType = 'immediate', scheduledFor = null, postId = null, fromCron = false } = await request.json()
 
     if (!content?.trim()) {
       return NextResponse.json({ error: "Content is required" }, { status: 400 })
@@ -22,26 +22,68 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: {
-        id: session.id,
-      },
-    })
+    let twitterProvider;
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    if (fromCron && postId) {
+      // Cron execution: get provider from the existing post
+      const existingPost = await prisma.post.findUnique({
+        where: { id: postId },
+        include: {
+          socialProvider: true
+        }
+      });
+
+      if (!existingPost) {
+        return NextResponse.json({ error: "Post not found" }, { status: 404 });
+      }
+
+      twitterProvider = existingPost.socialProvider;
+    } else {
+      // Frontend execution: get provider from session
+      const user = await prisma.user.findUnique({
+        where: {
+          id: session.id,
+        },
+      });
+
+      if (!user) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+
+      twitterProvider = await prisma.socialProvider.findFirst({
+        where: {
+          userId: user.id,
+          provider: 'twitter',
+          isConnected: true,
+        },
+      });
     }
-
-    const twitterProvider = await prisma.socialProvider.findFirst({
-      where: {
-        userId: user.id,
-        provider: 'twitter',
-        isConnected: true,
-      },
-    })
 
     if (!twitterProvider?.access_token) {
       return NextResponse.json({ error: "Twitter not connected" }, { status: 400 })
+    }
+
+    const isScheduled = postType === 'scheduled'
+    
+    if (isScheduled && scheduledFor) {
+      const post = await prisma.post.create({
+        data: {
+          socialProviderId: twitterProvider.id,
+          content,
+          mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
+          status: 'SCHEDULED',
+          scheduledFor: new Date(scheduledFor),
+          postedAt: null
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        postId: post.id,
+        scheduled: true,
+        scheduledFor: scheduledFor,
+        message: `Post scheduled for Twitter successfully!`
+      })
     }
 
     const now = Math.floor(Date.now() / 1000)
@@ -154,8 +196,9 @@ export async function POST(request: Request) {
       data: {
         socialProviderId: updatedProvider.id,
         content,
-        postedAt: new Date(),
-        status: 'POSTED',
+        status: isScheduled ? 'SCHEDULED' : 'POSTED',
+        scheduledFor: isScheduled && scheduledFor ? new Date(scheduledFor) : null,
+        postedAt: isScheduled ? null : new Date(),
         mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
       }
     })

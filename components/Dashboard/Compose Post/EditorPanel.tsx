@@ -40,7 +40,7 @@ interface EditorPanelProps {
     total: number;
     percentage: number;
     hasReachedLimit: boolean;
-  },
+  }
   userPlan: string | null
 }
 
@@ -68,6 +68,9 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [imageUpload, setImageUpload] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string>('')
+  const [showScheduleMenu, setShowScheduleMenu] = useState(false)
+  const [selectedDate, setSelectedDate] = useState('')
+  const [selectedTime, setSelectedTime] = useState('')
 
   const toggleEnhanceOption = (option: string) => {
     if (selectedEnhanceOptions.includes(option)) {
@@ -118,6 +121,27 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
     const newMediaUrls = [...mediaUrls]
     newMediaUrls.splice(index, 1)
     setMediaUrls(newMediaUrls)
+  }
+
+  const handleScheduleSelect = () => {
+    if (selectedDate && selectedTime) {
+      const scheduledDateTime = `${selectedDate}T${selectedTime}`
+      setScheduleTime(scheduledDateTime)
+      setShowScheduleMenu(false)
+    }
+  }
+
+  const clearSchedule = () => {
+    setSelectedDate('')
+    setSelectedTime('')
+    setScheduleTime('now')
+    setShowScheduleMenu(false)
+  }
+
+  const getMinDateTime = () => {
+    const now = new Date()
+    now.setMinutes(now.getMinutes() + 5)
+    return now.toISOString().slice(0, 16)
   }
 
   return (
@@ -368,10 +392,121 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
               </span>
             </button>
            {userPlan !== 'FREE' && (
-             <button onClick={() => { alert(`Your current plan (${userPlan}) allows scheduling posts. Scheduling feature coming soon!`) }}
-             className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors">
-              <Calendar className="w-4 h-4" />
-            </button>
+             <div className="relative">
+               <button 
+                 onClick={() => setShowScheduleMenu(!showScheduleMenu)}
+                 className={`p-2 rounded transition-colors flex items-center gap-1 ${
+                   scheduleTime !== 'now' 
+                     ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' 
+                     : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                 }`}
+               >
+                 <Calendar className="w-4 h-4" />
+                 {scheduleTime !== 'now' && (
+                   <span className="text-xs">Scheduled</span>
+                 )}
+               </button>
+               
+               {showScheduleMenu && (
+                 <div className="absolute bottom-full left-0 mb-2 bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-72 z-50">
+                   <div className="flex items-center justify-between mb-3">
+                     <h3 className="font-semibold text-gray-900 text-sm">Schedule Post</h3>
+                     <button 
+                       onClick={() => setShowScheduleMenu(false)}
+                       className="text-gray-400 hover:text-gray-600"
+                     >
+                       <X className="w-4 h-4" />
+                     </button>
+                   </div>
+                   
+                   <div className="space-y-3">
+                     <div>
+                       <label className="block text-xs font-medium text-gray-700 mb-1">
+                         Date
+                       </label>
+                       <input
+                         type="date"
+                         value={selectedDate}
+                         onChange={(e) => setSelectedDate(e.target.value)}
+                         min={new Date().toISOString().split('T')[0]}
+                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                       />
+                     </div>
+                     
+                     <div>
+                       <label className="block text-xs font-medium text-gray-700 mb-1">
+                         Time
+                       </label>
+                       <select
+                         value={selectedTime}
+                         onChange={(e) => setSelectedTime(e.target.value)}
+                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                       >
+                         <option value="">Select time</option>
+                         <option value="00:00">12:00 AM</option>
+                         <option value="01:00">1:00 AM</option>
+                         <option value="02:00">2:00 AM</option>
+                         <option value="03:00">3:00 AM</option>
+                         <option value="04:00">4:00 AM</option>
+                         <option value="05:00">5:00 AM</option>
+                         <option value="06:00">6:00 AM</option>
+                         <option value="07:00">7:00 AM</option>
+                         <option value="08:00">8:00 AM</option>
+                         <option value="09:00">9:00 AM</option>
+                         <option value="10:00">10:00 AM</option>
+                         <option value="11:00">11:00 AM</option>
+                         <option value="12:00">12:00 PM</option>
+                         <option value="13:00">1:00 PM</option>
+                         <option value="14:00">2:00 PM</option>
+                         <option value="15:00">3:00 PM</option>
+                         <option value="16:00">4:00 PM</option>
+                         <option value="17:00">5:00 PM</option>
+                         <option value="18:00">6:00 PM</option>
+                         <option value="19:00">7:00 PM</option>
+                         <option value="20:00">8:00 PM</option>
+                         <option value="21:00">9:00 PM</option>
+                         <option value="22:00">10:00 PM</option>
+                         <option value="23:00">11:00 PM</option>
+                       </select>
+                     </div>
+                     
+                     {scheduleTime !== 'now' && (
+                       <div className="pt-2 border-t border-gray-200">
+                         <p className="text-xs text-gray-600 mb-2">Current schedule:</p>
+                         <p className="text-sm font-medium text-indigo-600">
+                           {new Date(scheduleTime).toLocaleString('en-US', {
+                             dateStyle: 'medium',
+                             timeStyle: 'short'
+                           })}
+                         </p>
+                       </div>
+                     )}
+                     
+                     <div className="flex gap-2 pt-2">
+                       <button
+                         onClick={handleScheduleSelect}
+                         disabled={!selectedDate || !selectedTime}
+                         className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                           selectedDate && selectedTime
+                             ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                             : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                         }`}
+                       >
+                         Set Schedule
+                       </button>
+                       {scheduleTime !== 'now' && (
+                         <button
+                           onClick={clearSchedule}
+                           className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                         >
+                           Clear
+                         </button>
+                       )}
+                     </div>
+                   </div>
+                 </div>
+               )}
+             </div>
            )}
           </div>
           <div className="flex items-center gap-3">

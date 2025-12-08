@@ -84,19 +84,31 @@ model SocialProvider {
   @@index([provider])
 }
 
+enum PostStatus {
+  POSTED
+  FAILED
+  SCHEDULED
+}
+
 model Post {
   id               String    @id @default(cuid())
   socialProviderId String
   content          String
-  postedAt         DateTime?
-  status           String    @default("POSTED")
+  status           PostStatus    @default(POSTED)
   errorMessage     String?
   mediaUrls        String[]
+
+  scheduledFor DateTime?
+  postedAt         DateTime?
+
 
   socialProvider SocialProvider @relation(fields: [socialProviderId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([scheduledFor])
+  @@index([status])
 }
 
 enum SenderType {

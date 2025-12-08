@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { content, mediaUrls = [], published = true, tags = [] } = await request.json()
+    const { content, mediaUrls = [], published = true, tags = [], postType = 'immediate', scheduledFor = null } = await request.json()
 
     if (!content?.trim()) {
       return NextResponse.json({ error: "Content is required" }, { status: 400 })
@@ -50,6 +50,29 @@ export async function POST(request: Request) {
 
     if (!devtoProvider?.access_token) {
       return NextResponse.json({ error: "Dev.to not connected" }, { status: 400 })
+    }
+
+    const isScheduled = postType === 'scheduled'
+    
+    if (isScheduled && scheduledFor) {
+      const post = await prisma.post.create({
+        data: {
+          socialProviderId: devtoProvider.id,
+          content,
+          mediaUrls,
+          status: 'SCHEDULED',
+          scheduledFor: new Date(scheduledFor),
+          postedAt: null
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        postId: post.id,
+        scheduled: true,
+        scheduledFor: scheduledFor,
+        message: `Post scheduled for Dev.to successfully!`
+      })
     }
 
     const now = Math.floor(Date.now() / 1000)
@@ -114,6 +137,7 @@ export async function POST(request: Request) {
           socialProviderId: devtoProvider.id,
           content,
           mediaUrls,
+          
           status: 'FAILED',
           errorMessage: `Dev.to API error: ${devtoResponse.statusText}`,
         }
@@ -131,9 +155,9 @@ export async function POST(request: Request) {
         socialProviderId: devtoProvider.id,
         content,
         mediaUrls,
-        postedAt: new Date(),
-        status: 'POSTED',
-
+        status: isScheduled ? 'SCHEDULED' : 'POSTED',
+        scheduledFor: isScheduled && scheduledFor ? new Date(scheduledFor) : null,
+        postedAt: isScheduled ? null : new Date()
       }
     })
 
