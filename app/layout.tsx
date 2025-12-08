@@ -15,7 +15,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://zyvarin.com"),
-  title : "Zyvarin Social | Write Once, Publish Everywhere",
+  title: {
+    default: "Zyvarin Social | Write Once, Publish Everywhere",
+    template: "%s | Zyvarin Social",
+  },
   description:
     "Zyvarin Social is an AI-powered cross-posting tool that lets you write content once and automatically repurpose and publish it to LinkedIn, X (Twitter), Medium, and more from a single dashboard.",
   keywords: [
@@ -27,20 +30,60 @@ export const metadata: Metadata = {
     "LinkedIn posts",
     "Twitter posts",
     "Medium articles",
+    "social media automation",
+    "content distribution",
+    "multi-platform posting",
+    "social media management",
+    "AI content optimization",
+    "schedule social posts",
+    "cross-platform scheduler",
   ],
+  authors: [{ name: "Zyvarin Team" }],
+  creator: "Zyvarin",
+  publisher: "Zyvarin Social",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://zyvarin.com",
+    siteName: "Zyvarin Social",
     title: "Zyvarin Social | AI Cross-Posting Engine",
     description:
       "Write once, repurpose with AI, and publish everywhere. Manage LinkedIn, X, Medium and more from one clean dashboard.",
-    url: "https://zyvarin.com",
-    siteName: "Zyvarin Social",
-    type: "website",
+    images: [
+      {
+        url: "https://zyvarin.com/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Zyvarin Social - AI-Powered Social Media Scheduler",
+        type: "image/png",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
+    site: "@zyvarin",
+    creator: "@zyvarin",
     title: "Zyvarin Social | AI Cross-Posting Engine",
     description:
       "Write once, repurpose with AI, and publish everywhere from a single dashboard.",
+    images: ["https://zyvarin.com/twitter-card.png"],
+  },
+  alternates: {
+    canonical: "https://zyvarin.com",
+  },
+  verification: {
+    google: "google-site-verification-code",
   },
 };
 
@@ -53,7 +96,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {process.env.NEXT_PUBLIC_GA_ID && (
           <>
             <Script
               strategy="afterInteractive"
@@ -72,7 +114,6 @@ export default function RootLayout({
               }}
             />
           </>
-        )}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         {children}

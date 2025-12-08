@@ -5,10 +5,18 @@ import Image from "next/image";
 
 const Footer = () => {
     const footerLinks = {
-        Product: ["Features", "Integrations", "Pricing", "Changelog", "Roadmap", "API"],
-        Solutions: ["For Creators", "For Agencies", "For Startups", "For Enterprise"],
-        Resources: ["Blog", "Guides", "Help Center", "Webinars", "Case Studies"],
-        Company: ["About", "Careers", "Press", "Contact", "Partners"],
+        Product: [
+            { label: "Pricing", href: "/pricing" },
+            { label: "Compare", href: "/compare" },
+        ],
+        Resources: [
+            { label: "Help Center", href: "/help" },
+            { label: "Use Cases", href: "/use-cases" },
+        ],
+        Company: [
+            { label: "About", href: "/about" },
+            { label: "Contact", href: "/contact" },
+        ],
         Legal: [
             { label: "Privacy Policy", href: "/legal/privacy-policy" },
             { label: "Terms of Service", href: "/legal/terms-of-service" },

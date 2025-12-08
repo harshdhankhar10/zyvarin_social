@@ -22,8 +22,8 @@ const Navbar = () => {
   const navItems = [
     { label: "About", href: "/about" },
     { label: "Use Cases", href: "/use-cases" },
-    { label: "Compare", href: "/compare" },
-    { label: "Blog", href: "/blog" },
+    { label: "Pricing", href: "/pricing" },
+      { label: "Compare", href: "/compare" },
     { label: "Help", href: "/help" },
   ];
   const router = useRouter();
