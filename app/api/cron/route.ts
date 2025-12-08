@@ -26,6 +26,99 @@ async function publishPostServer(postId: string, platform: string, content: stri
   };
 }
 
+async function handlePendingTransactions() {
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const failedTransactions = await prisma.transaction.updateMany({
+    where: {
+      status: 'PENDING',
+      createdAt: {
+        lt: oneDayAgo
+      }
+    },
+    data: {
+      status: 'FAILED',
+      updatedAt: new Date()
+    }
+  });
+
+  if (failedTransactions.count > 0) {
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        status: 'FAILED',
+        updatedAt: {
+          gte: oneDayAgo
+        }
+      },
+      include: {
+        user: true
+      }
+    });
+
+    for (const transaction of transactions) {
+      await prisma.notification.create({
+        data: {
+          userId: transaction.user.id,
+          senderType: 'SYSTEM',
+          title: '❌ Transaction Failed',
+          message: `Your transaction (₹${transaction.amount}) could not be processed. Please try again or contact support.`,
+          isRead: false
+        }
+      });
+    }
+  }
+
+  return {
+    failedCount: failedTransactions.count,
+    timestamp: new Date().toISOString()
+  };
+}
+
+async function handlePendingInvoices() {
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const overdueInvoices = await prisma.invoice.findMany({
+    where: {
+      paymentStatus: 'PENDING',
+      createdAt: {
+        lt: oneDayAgo
+      }
+    },
+    include: {
+      user: true
+    }
+  });
+
+  let failedCount = 0;
+
+  for (const invoice of overdueInvoices) {
+    await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        paymentStatus: 'FAILED',
+        updatedAt: new Date()
+      }
+    });
+
+    await prisma.notification.create({
+      data: {
+        userId: invoice.user.id,
+        senderType: 'SYSTEM',
+        title: '❌ Invoice Payment Failed',
+        message: `Invoice #${invoice.id.slice(0, 8)} for ₹${invoice.totalAmount} has expired. Please generate a new payment link.`,
+        isRead: false
+      }
+    });
+
+    failedCount++;
+  }
+
+  return {
+    failedCount: failedCount,
+    timestamp: new Date().toISOString()
+  };
+}
+
 export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get('authorization');
@@ -36,14 +129,15 @@ export async function GET(req: NextRequest) {
     }
 
     const now = new Date();
-    const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60000);
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
 
     const scheduledPosts = await prisma.post.findMany({
       where: {
         status: 'SCHEDULED',
         scheduledFor: {
-          lte: fiveMinutesFromNow,
-          gte: now
+          lte: endOfDay,
+          gte: startOfDay
         }
       },
       include: {
@@ -154,10 +248,19 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const transactionResults = await handlePendingTransactions();
+    const invoiceResults = await handlePendingInvoices();
+
     return NextResponse.json({
       success: true,
-      processed: scheduledPosts.length,
-      results,
+      jobs: {
+        scheduledPosts: {
+          processed: scheduledPosts.length,
+          results
+        },
+        transactions: transactionResults,
+        invoices: invoiceResults
+      },
       timestamp: new Date().toISOString()
     });
 
@@ -169,3 +272,4 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+

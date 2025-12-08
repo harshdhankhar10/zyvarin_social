@@ -482,6 +482,12 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
                        </div>
                      )}
                      
+                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                       <p className="text-xs text-amber-800">
+                         <span className="font-semibold">⚠️ Note:</span> Due to server infrastructure constraints, posts are published once daily at 9:00 AM UTC. Our team is working hard to fix this and enable real-time scheduling soon.
+                       </p>
+                     </div>
+                     
                      <div className="flex gap-2 pt-2">
                        <button
                          onClick={handleScheduleSelect}
