@@ -6,7 +6,8 @@ import {
   BarChart3, PieChart, Filter, Download, MoreVertical,
   CheckCircle, XCircle, Clock, Linkedin, Twitter,
   ArrowUpRight, ArrowDownRight, RefreshCw, Sparkles,
-  Zap, Wand2, Brain, FileText
+  Zap, Wand2, Brain, FileText,
+  Code2
 } from 'lucide-react'
 import {
   LineChart, Line, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell,
@@ -78,6 +79,7 @@ const Analytics = ({ data }: { data: AnalyticsData }) => {
     switch(platform) {
       case 'linkedin': return <Linkedin className="w-4 h-4" />
       case 'twitter': return <Twitter className="w-4 h-4" />
+      case 'devto': return <Code2 className="w-4 h-4" />
       default: return <Users className="w-4 h-4" />
     }
   }

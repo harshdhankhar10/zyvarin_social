@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import axios from 'axios'
+import prisma from '@/lib/prisma'
+import { currentLoggedInUserInfo } from '@/utils/currentLogegdInUserInfo'
 
 export async function POST(req: NextRequest) {
+  const session = await currentLoggedInUserInfo()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   try {
     const formData = await req.formData()
     const file = formData.get('image') as File
@@ -27,7 +33,16 @@ export async function POST(req: NextRequest) {
       }
     )
 
+
     if (response.data.success) {
+      await prisma.user.update({  
+        where: {
+          email: session.email
+        },
+        data: {
+          avatarUrl: response.data.data.url
+        }
+      })
       return NextResponse.json({ 
         success: true, 
         imageUrl: response.data.data.url 

@@ -102,36 +102,6 @@ const ConnectAccounts = ({
       bgColor: 'bg-slate-50',
       description: 'Developer community',
       isAvailable: true
-    },
-    {
-      id: 'instagram',
-      name: 'Instagram',
-      icon: Instagram,
-      color: 'text-pink-600',
-      bgColor: 'bg-pink-50',
-      description: 'Visual content',
-      isAvailable: false,
-      comingSoon: true
-    },
-    {
-      id: 'facebook',
-      name: 'Facebook',
-      icon: Facebook,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      description: 'Community engagement',
-      isAvailable: false,
-      comingSoon: true
-    },
-    {
-      id: 'github',
-      name: 'GitHub',
-      icon: Github,
-      color: 'text-slate-800',
-      bgColor: 'bg-slate-50',
-      description: 'Developer community',
-      isAvailable: false,
-      comingSoon: true
     }
   ]
 
@@ -298,8 +268,8 @@ const ConnectAccounts = ({
   }
 
   return (
-    <div className="p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="">
+      <div className="">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-slate-900 mb-2">Social Connections</h1>
           <p className="text-slate-500">Connect your social accounts to publish everywhere from one dashboard</p>
@@ -441,11 +411,7 @@ const ConnectAccounts = ({
                         <CheckCircle2 className="w-3.5 h-3.5" />
                       </span>
                     )}
-                    {platform.comingSoon && (
-                      <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-full">
-                        Coming Soon
-                      </span>
-                    )}
+
                   </div>
                 </div>
 

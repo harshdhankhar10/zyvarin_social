@@ -2,11 +2,9 @@
 
 import React, { useState } from 'react'
 import { 
-  CreditCard, Check, Download, ExternalLink, ArrowRight,
-  Zap, Send, Globe, Users, Calendar, BarChart,
-  Info, AlertCircle, Sparkles, Crown, Clock,
-  FileText, Receipt, Shield, CheckCircle,
-  XCircle, AlertTriangle
+  CreditCard, Check, Download, ArrowRight,
+  Zap, Send, Globe, Calendar, BarChart,
+  Info, CheckCircle, FileText, X
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +12,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatDate } from '@/utils/formatDate'
 import axios from 'axios'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 interface BillingPageProps {
   billingData: {
@@ -83,6 +83,10 @@ export default function BillingPage({ billingData }: BillingPageProps) {
   const [selectedPlan, setSelectedPlan] = useState(billingData.user.currentPlan)
   const [isUpgrading, setIsUpgrading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [showChangePlanDialog, setShowChangePlanDialog] = useState(false)
+  const [isCanceling, setIsCanceling] = useState(false)
+  const [isChanging, setIsChanging] = useState(false)
   const router = useRouter()
 
 
@@ -265,8 +269,109 @@ export default function BillingPage({ billingData }: BillingPageProps) {
     }
   }
 
-  const handleDownloadInvoice = (invoiceId: string) => {
-    alert("Comming soon!")
+  const handleDownloadInvoice = (invoiceNumber: string) => {
+    const invoice = billingData.invoices.find(inv => inv.invoiceNumber === invoiceNumber)
+    if (!invoice) return
+
+    const issuedOn = formatDate(new Date(invoice.date))
+    const amountLabel = formatCurrency(invoice.amount)
+    const amountText = `${amountLabel}`
+    const website = 'Zyvarin Social'
+    const supportEmail = 'support@zyvarin.com'
+    const accent: [number, number, number] = [42, 63, 206]
+
+    const doc = new jsPDF()
+
+    doc.setFillColor(...accent)
+    doc.rect(0, 0, 210, 32, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(18)
+    doc.text(website, 20, 20)
+    doc.setFontSize(10)
+    doc.text('Professional Invoice', 20, 27)
+
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(12)
+    doc.text(`Invoice #: ${invoice.invoiceNumber}`, 20, 46)
+    doc.text(`Date: ${issuedOn}`, 20, 54)
+    doc.text(`Plan: ${invoice.plan}`, 20, 62)
+    doc.setTextColor(90, 90, 90)
+    doc.text(`Status: ${invoice.status.toUpperCase()}`, 20, 70)
+    doc.setTextColor(0, 0, 0)
+
+    doc.setFontSize(12)
+    doc.text('Bill To', 140, 46)
+    doc.setFontSize(11)
+    doc.text(billingData.user.name, 140, 54)
+    doc.text(billingData.user.email, 140, 62)
+    doc.setDrawColor(...accent)
+    doc.roundedRect(136, 40, 60, 30, 2, 2)
+    doc.setDrawColor(0, 0, 0)
+
+    autoTable(doc, {
+      startY: 82,
+      head: [['Description', 'Qty', 'Amount']],
+      body: [[`${invoice.description} (${invoice.plan})`, '1', amountText]],
+      styles: { fontSize: 11 },
+      headStyles: { fillColor: [42, 63, 206], textColor: 255 },
+      columnStyles: {
+        0: { cellWidth: 110 },
+        1: { cellWidth: 20, halign: 'center' },
+        2: { cellWidth: 40, halign: 'right' }
+      }
+    })
+
+    const afterTableY = (doc as any).lastAutoTable.finalY + 10
+    doc.setFontSize(12)
+  doc.text('Subtotal:', 150, afterTableY)
+  doc.text(amountText, 190, afterTableY, { align: 'right' })
+  doc.setTextColor(90, 90, 90)
+  doc.text('Total Due (INR):', 150, afterTableY + 8)
+  doc.setFontSize(13)
+  doc.setTextColor(...accent)
+  doc.text(amountText, 190, afterTableY + 8, { align: 'right' })
+  doc.setTextColor(0, 0, 0)
+
+    doc.setFontSize(10)
+    doc.text(`Thank you for choosing ${website}.`, 20, afterTableY + 16)
+    doc.text(`Need help? ${supportEmail}`, 20, afterTableY + 24)
+
+    doc.save(`invoice-${invoice.invoiceNumber}.pdf`)
+  }
+
+  const handleCancelSubscription = async () => {
+    setIsCanceling(true)
+    try {
+      const response = await axios.post('/api/dashboard/billing/cancel')
+      if (response.data.success) {
+        router.refresh()
+        setShowCancelDialog(false)
+      }
+    } catch (error) {
+      console.error('Error canceling subscription:', error)
+      alert('Failed to cancel subscription')
+    } finally {
+      setIsCanceling(false)
+    }
+  }
+
+  const handleChangePlan = async (newPlan: string) => {
+    if (newPlan === billingData.user.currentPlan) return
+    
+    setIsChanging(true)
+    setSelectedPlan(newPlan)
+    try {
+      const response = await axios.post('/api/dashboard/billing/change-plan', { newPlan })
+      if (response.data.success) {
+        router.refresh()
+        setShowChangePlanDialog(false)
+      }
+    } catch (error) {
+      console.error('Error changing plan:', error)
+      alert('Failed to change plan')
+    } finally {
+      setIsChanging(false)
+    }
   }
 
   const getStatusColor = (status: string) => {
@@ -294,19 +399,16 @@ export default function BillingPage({ billingData }: BillingPageProps) {
   if(isSuccess) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-20">
-        <div className="bg-green-100 rounded-full p-4 mb-6">
-          <CheckCircle className="w-12 h-12 text-green-600" />
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
+          <CheckCircle className="w-8 h-8 text-green-600" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Upgrade Successful!</h2>
-        <div className="text-center text-gray-600 mb-6 px-4"></div>
-          <p>Your plan has been upgraded successfully. Enjoy your new features and benefits!</p>
-        <div>
-          <Button className='mt-6'
-            onClick={() => router.refresh()} 
-          >
-            Go to Billing Dashboard
-          </Button>
-        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful</h2>
+        <p className="text-center text-gray-600 mb-6 px-4">
+          Your plan has been upgraded successfully.
+        </p>
+        <Button onClick={() => router.refresh()}>
+          Go to Dashboard
+        </Button>
       </div>
     )
   }
@@ -458,15 +560,20 @@ export default function BillingPage({ billingData }: BillingPageProps) {
               Upgrade Plan
             </Button>
           ) : (
-            <Button variant="outline">Change Plan</Button>
+            <Button 
+              variant="outline"
+              onClick={() => setShowChangePlanDialog(true)}
+            >
+              Change Plan
+            </Button>
           )}
         </div>
 
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-xl p-6 mb-6">
+        <div className="border border-gray-200 rounded-lg p-6 mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <Badge className="px-3 py-1 bg-white text-gray-800 border border-gray-300 hover:bg-gray-100">
+                <Badge className="px-3 py-1 bg-blue-100 text-blue-800">
                   {billingData.user.currentPlan} PLAN
                 </Badge>
                 {billingData.user.currentPlan !== 'FREE' && (
@@ -478,30 +585,21 @@ export default function BillingPage({ billingData }: BillingPageProps) {
               <p className="text-gray-600 mb-2">
                 Member since {billingData.user.memberSince}
               </p>
-              <div className="flex flex-wrap gap-2 mt-3">
-                <span className="flex items-center gap-1 text-sm text-gray-600">
-                  <Zap className="w-3 h-3 text-amber-500" />
+              <div className="flex flex-wrap gap-3 mt-3">
+                <span className="text-sm text-gray-600">
                   {billingData.planLimits.aiGenerations} AI generations
                 </span>
-                <span className="flex items-center gap-1 text-sm text-gray-600">
-                  <Send className="w-3 h-3 text-blue-500" />
+                <span className="text-sm text-gray-600">
                   {billingData.planLimits.posts} posts/month
                 </span>
-                <span className="flex items-center gap-1 text-sm text-gray-600">
-                  <Globe className="w-3 h-3 text-purple-500" />
+                <span className="text-sm text-gray-600">
                   {billingData.planLimits.platforms} platforms
                 </span>
                 {billingData.planLimits.scheduling && (
-                  <span className="flex items-center gap-1 text-sm text-gray-600">
-                    <Calendar className="w-3 h-3 text-green-500" />
-                    Scheduling
-                  </span>
+                  <span className="text-sm text-gray-600">Scheduling</span>
                 )}
                 {billingData.planLimits.analytics && (
-                  <span className="flex items-center gap-1 text-sm text-gray-600">
-                    <BarChart className="w-3 h-3 text-indigo-500" />
-                    Analytics
-                  </span>
+                  <span className="text-sm text-gray-600">Analytics</span>
                 )}
               </div>
             </div>
@@ -509,32 +607,30 @@ export default function BillingPage({ billingData }: BillingPageProps) {
             {billingData.nextBillingDate && (
               <div className="lg:text-right">
                 <p className="text-sm text-gray-500 mb-1">Next billing date</p>
-                <p className="font-medium text-gray-900 text-lg">{formatDate(billingData.nextBillingDate)}</p>
-                <p className="text-xs text-gray-500 mt-1">Auto-renews monthly</p>
+                <p className="font-medium text-gray-900">{formatDate(billingData.nextBillingDate)}</p>
               </div>
             )}
           </div>
         </div>
 
-        <div className="pt-6 border-t border-gray-200">
-          <h4 className="text-sm font-medium text-gray-900 mb-4">Payment Method</h4>
-          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                <CreditCard className="w-5 h-5 text-gray-600" />
-              </div>
+        {billingData.user.currentPlan !== 'FREE' && (
+          <div className="pt-4 border-t border-gray-200">
+            <div className="flex justify-between items-center">
               <div>
-                <p className="font-medium text-gray-900">
-                  No payment method on file
-                </p>
-                <p className="text-sm text-gray-500">Add a payment method to upgrade your plan</p>
+                <h4 className="text-sm font-medium text-gray-900">Subscription Actions</h4>
+                <p className="text-sm text-gray-500 mt-1">Manage your active subscription</p>
               </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={() => setShowCancelDialog(true)}
+              >
+                Cancel Subscription
+              </Button>
             </div>
-            <Button variant="outline" size="sm">
-              Add Payment Method
-            </Button>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -547,67 +643,51 @@ export default function BillingPage({ billingData }: BillingPageProps) {
           {plans.map((plan) => (
             <div 
               key={plan.id}
-              className={`border rounded-xl p-6 relative transition-all ${
-                plan.current ? 'border-blue-500 border-2 shadow-sm' : 'border-gray-200'
-              } ${plan.popular ? 'ring-2 ring-blue-500' : ''}`}
+              className={`border rounded-lg p-6 relative ${
+                plan.current ? 'border-blue-600 border-2' : 'border-gray-200'
+              }`}
             >
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <span className="px-3 py-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-medium rounded-full">
-                    MOST POPULAR
+                  <span className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded">
+                    POPULAR
                   </span>
                 </div>
               )}
               
               {plan.current && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <span className="px-3 py-1 bg-white text-green-600 text-xs font-medium rounded-full border border-green-300">
-                    <CheckCircle className="w-3 h-3 inline mr-1" />
-                    CURRENT PLAN
+                  <span className="px-3 py-1 bg-green-600 text-white text-xs font-medium rounded">
+                    CURRENT
                   </span>
                 </div>
               )}
               
               <div className="text-center mb-6 pt-4">
                 <h4 className="text-xl font-bold text-gray-900 mb-2">{plan.name}</h4>
-                <div className="flex items-baseline justify-center gap-1 mb-2">
-                  <span className="text-3xl font-bold text-gray-900">{plan.priceDisplay}
-                    {plan.price > 0 && (
-                     <span className="text-sm font-normal text-gray-500 ml-1">
-                      +18% GST
-                     </span>
-                    )}
-                  </span>
-                  <span className="text-gray-500">{plan.period}</span>
+                <div className="mb-2">
+                  <span className="text-3xl font-bold text-gray-900">{plan.priceDisplay}</span>
+                  {plan.price > 0 && (
+                    <span className="text-sm text-gray-500 ml-1">+18% GST</span>
+                  )}
+                  <span className="text-gray-500 text-sm">{plan.period}</span>
                 </div>
                 <p className="text-gray-600 text-sm">{plan.description}</p>
               </div>
 
-              <div className="space-y-3 mb-6">
+              <div className="space-y-2 mb-6">
                 {plan.features.map((feature, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
+                  <div key={index} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-green-600 mt-0.5" />
                     <span className="text-sm text-gray-700">{feature}</span>
                   </div>
                 ))}
               </div>
 
-              {plan.limitations && plan.limitations.length > 0 && (
-                <div className="space-y-2 mb-6">
-                  <p className="text-sm font-medium text-gray-700">Limitations:</p>
-                  {plan.limitations.map((limitation, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm text-gray-500">
-                      <span className="text-red-500">•</span>
-                      {limitation}
-                    </div>
-                  ))}
-                </div>
-              )}
-
               <Button 
                 onClick={() => handleUpgrade(plan.id)}
-                className={`w-full ${plan.popular ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700' : ''}`}
-                variant={plan.current ? 'outline' : plan.popular ? 'default' : 'outline'}
+                className="w-full"
+                variant={plan.current ? 'outline' : 'default'}
                 disabled={plan.current || isUpgrading}
               >
                 {isUpgrading && plan.id === selectedPlan ? (
@@ -622,16 +702,14 @@ export default function BillingPage({ billingData }: BillingPageProps) {
           ))}
         </div>
 
-        <div className="mt-8 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-blue-600 mt-0.5" />
-            <div className="space-y-2">
-              <h4 className="font-medium text-blue-900">What happens when I upgrade?</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• New limits take effect immediately</li>
-                <li>• You can downgrade at any time</li>
-                <li>• We follow no <span className="font-semibold">refund policy</span> for any of our plans</li>
-              </ul>
+            <Info className="w-5 h-5 text-blue-600" />
+            <div>
+              <h4 className="font-medium text-gray-900 mb-2">Important</h4>
+              <p className="text-sm text-gray-600">
+                New limits take effect immediately. No refunds are provided for any plans.
+              </p>
             </div>
           </div>
         </div>
@@ -679,7 +757,7 @@ export default function BillingPage({ billingData }: BillingPageProps) {
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => handleDownloadInvoice(invoice.id)}
+                        onClick={() => handleDownloadInvoice(invoice.invoiceNumber)}
                       >
                         <Download className="w-4 h-4 mr-2" />
                         Download
@@ -700,6 +778,85 @@ export default function BillingPage({ billingData }: BillingPageProps) {
           </div>
         )}
       </div>
+
+      {showCancelDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Cancel Subscription</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to cancel your subscription? You will be moved to the FREE plan.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowCancelDialog(false)}
+                disabled={isCanceling}
+              >
+                Keep Subscription
+              </Button>
+              <Button 
+                onClick={handleCancelSubscription}
+                disabled={isCanceling}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {isCanceling ? 'Canceling...' : 'Yes, Cancel'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showChangePlanDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-gray-900">Change Plan</h3>
+              <button 
+                onClick={() => setShowChangePlanDialog(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {plans.filter(p => p.id !== billingData.user.currentPlan).map((plan) => (
+                <div 
+                  key={plan.id}
+                  className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 cursor-pointer"
+                  onClick={() => handleChangePlan(plan.id)}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h4 className="font-bold text-gray-900">{plan.name}</h4>
+                      <p className="text-sm text-gray-600">{plan.description}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-bold text-gray-900">{plan.priceDisplay}</p>
+                      <p className="text-xs text-gray-500">{plan.period}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    {plan.features.slice(0, 3).map((feature, i) => (
+                      <p key={i} className="text-sm text-gray-600 flex items-center gap-2">
+                        <Check className="w-3 h-3 text-green-500" />
+                        {feature}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <Info className="w-4 h-4 inline mr-1" />
+                Plan changes take effect immediately. Your billing will be adjusted accordingly.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

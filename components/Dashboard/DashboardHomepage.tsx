@@ -3,355 +3,232 @@
 import React from 'react'
 import Link from 'next/link'
 import {
-    BarChart3, Sparkles, Users, TrendingUp,
-    Calendar, ArrowUpRight, FileText,
+    BarChart3, Users, TrendingUp,
     Linkedin, Twitter, Globe, CheckCircle,
-    Clock, Plus
+    Clock, Code2
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Button } from '../ui/button'
+import { formatDate } from '@/utils/formatDate'
 
 const DashboardHomepage = ({ data }: any) => {
     const router = useRouter()
 
     const getPlatformIcon = (platform: string) => {
         switch (platform) {
-            case 'linkedin': return <Linkedin className="w-4 h-4 text-blue-600" />
-            case 'twitter': return <Twitter className="w-4 h-4 text-sky-500" />
-            default: return <Globe className="w-4 h-4 text-gray-600" />
+            case 'linkedin': return <Linkedin className="w-4 h-4" />
+            case 'twitter': return <Twitter className="w-4 h-4" />
+            case 'devto': return <Code2 className="w-4 h-4" />
+            default: return <Globe className="w-4 h-4" />
         }
     }
 
     const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'POSTED': return <CheckCircle className="w-3 h-3 text-green-500" />
-            default: return <Clock className="w-3 h-3 text-yellow-500" />
+        if (status === 'POSTED') {
+            return <CheckCircle className="w-4 h-4 text-green-600" />
         }
-    }
-
-    const formatDate = (date: Date) => {
-        return new Date(date).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric'
-        })
+        return <Clock className="w-4 h-4 text-amber-600" />
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="mx-auto">
-                <div className="mb-8 mt-4 flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Welcome back, {data.user.name} 👋</h1>
-                        <p className="text-gray-600">Here's what's happening with your social media</p>
-                    </div>
-                    {data.user.plan === 'FREE' ? (
-                        <Button
-                            onClick={() => router.push('/dashboard/settings/billing')}
-                        >
-                            ⚡ Upgrade Plan
-                        </Button>
-                    ) : (
-                        <div className={`px-3 py-1 rounded-full text-sm font-medium ${data.user.plan === 'CREATOR' ? 'bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800' :
-                                'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800'
-                            }`}>
-                            ✓ {data.user.plan} Plan
+        <div className="min-h-screen bg-white">
+            <div className="max-w-7xl mx-auto px-6 py-10">
+                
+                <div className="mb-12">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900 mb-1">
+                                Welcome back, {data.user.name}
+                            </h1>
+                            <p className="text-gray-500">
+                                Here's what's happening with your accounts
+                            </p>
                         </div>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <div className="bg-white rounded-lg border border-gray-200 p-5">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="p-2 bg-blue-50 rounded-lg">
-                                <Users className="w-5 h-5 text-blue-600" />
-                            </div>
-                            <span className="text-sm font-medium text-blue-600 flex items-center">
-                                {data.stats.connectedPlatforms} connected
-                            </span>
-                        </div>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-2">{data.stats.connectedPlatforms}</h3>
-                        <p className="text-sm text-gray-600">Active Platforms</p>
-                        <div className="mt-4">
-                            <Link
-                                href="/dashboard/connect-accounts"
-                                className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-                            >
-                                Connect more
-                                <ArrowUpRight className="w-3 h-3" />
-                            </Link>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-lg border border-gray-200 p-5">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="p-2 bg-green-50 rounded-lg">
-                                <BarChart3 className="w-5 h-5 text-green-600" />
-                            </div>
-                            <span className="text-sm font-medium text-green-600 flex items-center">
-                                <TrendingUp className="w-3 h-3 mr-1" />
-                                {data.stats.postsThisMonth} this month
-                            </span>
-                        </div>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                            {data.remainingPosts} Posts Left
-                            </h3>
-                        <p className="text-sm text-gray-600">Total Posts</p>
-                        <div className="mt-4">
-              
-                            {data.canPublishPost ? (
-                                <Link
-                                    href="/dashboard/compose">
-                                    <span className="text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1">Create new post
-                                        <Plus className="w-3 h-3" />
-                                    </span>
-                                </Link>
+                        <div>
+                            {data.user.plan === 'FREE' ? (
+                                <Button onClick={() => router.push('/dashboard/settings/billing')}>
+                                    Upgrade Plan
+                                </Button>
                             ) : (
-                                <span className="text-sm text-gray-400 cursor-not-allowed font-medium flex items-center gap-1">
-                                    Quota reached for this month
+                                <span className="text-sm text-gray-600">
+                                    {data.user.plan} Plan
                                 </span>
                             )}
                         </div>
                     </div>
+                </div>
 
-                    <div className="bg-white rounded-lg border border-gray-200 p-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+                    <div className="border border-gray-200 rounded p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <div className="p-2 bg-purple-50 rounded-lg">
-                                <Sparkles className="w-5 h-5 text-purple-600" />
-                            </div>
-                            <span className="text-sm font-medium text-purple-600 flex items-center">
-                                {data.stats.aiUsesThisMonth} this month
-                            </span>
+                            <span className="text-sm text-gray-600">Connected Platforms</span>
+                            <Users className="w-4 h-4 text-gray-400" />
                         </div>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                            {data.remainingAIGenerations} Enhancements Left
-                            </h3>
-                        <p className="text-sm text-gray-600">AI Enhancements</p>
-                        <div className="mt-4">
-                                {data.canCreateAIContent ? ( <Link
-                                href="/dashboard/analytics"
-                                className="text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
-                            >
-                                View usage
-                                <ArrowUpRight className="w-3 h-3" />
-                            </Link>
-                        ) : (
-                            <span className="text-sm text-gray-400 cursor-not-allowed font-medium flex items-center gap-1">
-                                Quota reached for this month
-                            </span>
-                        )}
-                        </div>
+                        <p className="text-2xl font-bold text-gray-900">
+                            {data.stats.connectedPlatforms}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-2">active</p>
                     </div>
 
-                    <div className="bg-white rounded-lg border border-gray-200 p-5">
+                    <div className="border border-gray-200 rounded p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <div className="p-2 bg-orange-50 rounded-lg">
-                                <Calendar className="w-5 h-5 text-orange-600" />
-                            </div>
-                            <span className="text-sm font-medium text-gray-500">
-                                Plan: {data.user.plan}
-                            </span>
+                            <span className="text-sm text-gray-600">Posts This Month</span>
+                            <TrendingUp className="w-4 h-4 text-gray-400" />
                         </div>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-2">Today</h3>
-                        <p className="text-sm text-gray-600">Ready to publish</p>
-                        <div className="mt-4">
-                            {data.canPublishPost ? (
-                            <Button
-                                onClick={() => router.push('/dashboard/compose')}
-                                className='w-full'
-                            >
-                                Compose Post
-                            </Button>
-                            ) : (
-                                <Button variant={"outline"} className='w-full' onClick={() => router.push('/dashboard/settings/billing')}>
-                                    Upgrade Plan to Publish
-                                </Button>
-                            )}
+                        <p className="text-2xl font-bold text-gray-900">
+                            {data.stats.postsThisMonth}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-2">{data.remainingPosts} remaining</p>
+                    </div>
+
+                    <div className="border border-gray-200 rounded p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="text-sm text-gray-600">AI Enhancements</span>
+                            <BarChart3 className="w-4 h-4 text-gray-400" />
                         </div>
+                        <p className="text-2xl font-bold text-gray-900">
+                            {data.remainingAIGenerations}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-2">this month</p>
+                    </div>
+
+                    <div className="border border-gray-200 rounded p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="text-sm text-gray-600">Plan Status</span>
+                            <span className="text-xs font-medium text-gray-700">{data.user.plan}</span>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900">
+                            {data.stats.connectedPlatforms > 0 ? 'Active' : 'Setup'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-2">account</p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    <div className="bg-white rounded-lg border border-gray-200 p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900">Recent Posts</h3>
-                                <p className="text-sm text-gray-500">Latest published content</p>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+                    <div className="lg:col-span-2">
+                        <div className="border border-gray-200 rounded p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-lg font-bold text-gray-900">Recent Posts</h2>
+                                <Link href="/dashboard/analytics" className="text-sm text-blue-600">
+                                    View all
+                                </Link>
                             </div>
-                            <Link
-                                href="/dashboard/analytics"
-                                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                            >
-                                View all
-                            </Link>
-                        </div>
 
-                        <div className="space-y-4">
-                            {data.recentPosts.length > 0 ? (
-                                data.recentPosts.map((post: any) => (
-                                    <div key={post.id} className="flex items-start gap-3 p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
-                                        <div className="p-2 rounded-lg bg-gray-100">
-                                            {getPlatformIcon(post.platform)}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="text-sm font-medium text-gray-900 capitalize">{post.platform}</span>
-                                                <div className="flex items-center gap-2">
-                                                    {getStatusIcon(post.status)}
-                                                    <span className="text-xs text-gray-500">
-                                                        {post.postedAt ? formatDate(post.postedAt) : 'Pending'}
-                                                    </span>
+                            {data.recentPosts && data.recentPosts.length > 0 ? (
+                                <div className="space-y-3">
+                                    {data.recentPosts.slice(0, 5).map((post: any) => (
+                                        <div key={post.id} className="border border-gray-200 rounded p-4">
+                                            <div className="flex items-start gap-4">
+                                                <div className="pt-1">
+                                                    {getPlatformIcon(post.platform)}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="text-sm font-medium text-gray-900 capitalize">
+                                                            {post.platform}
+                                                        </span>
+                                                        <div className="flex items-center gap-2">
+                                                            {getStatusIcon(post.status)}
+                                                            <span className="text-xs text-gray-500">
+                                                                {post.postedAt ? formatDate(post.postedAt) : 'Scheduled'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-sm text-gray-600 line-clamp-2">
+                                                        {post.content}
+                                                    </p>
                                                 </div>
                                             </div>
-                                            <p className="text-sm text-gray-600 line-clamp-2">{post.content}</p>
                                         </div>
-                                    </div>
-                                ))
+                                    ))}
+                                </div>
                             ) : (
-                                <div className="text-center py-8">
-                                    <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                                    <p className="text-gray-500">No posts yet</p>
-                                    <Link
-                                        href="/dashboard/compose"
-                                        className="mt-3 inline-block text-sm text-blue-600 hover:text-blue-700 font-medium"
-                                    >
-                                        Create your first post →
+                                <div className="text-center py-10">
+                                    <p className="text-gray-600 mb-3">No posts published yet</p>
+                                    <Link href="/dashboard/compose" className="text-sm text-blue-600">
+                                        Create first post
                                     </Link>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-lg border border-gray-200 p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900">Connected Platforms</h3>
-                                <p className="text-sm text-gray-500">Your active social accounts</p>
-                            </div>
-                            <Link
-                                href="/dashboard/connect-accounts"
-                                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                            >
-                                Manage
-                            </Link>
-                        </div>
+                    <div>
+                        <div className="border border-gray-200 rounded p-6">
+                            <h2 className="text-lg font-bold text-gray-900 mb-4">Connected Accounts</h2>
 
-                        <div className="space-y-3">
-                            {data.connectedPlatforms.length > 0 ? (
-                                data.connectedPlatforms.map((platform: string) => (
-                                    <div key={platform} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 rounded-lg bg-gray-100">
+                            {data.connectedPlatforms && data.connectedPlatforms.length > 0 ? (
+                                <div className="space-y-3">
+                                    {data.connectedPlatforms.map((platform: string) => (
+                                        <div key={platform} className="flex items-center gap-3 p-3 border border-gray-200 rounded">
+                                            <div className="flex-shrink-0">
                                                 {getPlatformIcon(platform)}
                                             </div>
-                                            <div>
-                                                <span className="font-medium text-gray-900 capitalize">{platform}</span>
-                                                <div className="text-xs text-gray-500">Connected</div>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-medium text-gray-900 capitalize">
+                                                    {platform}
+                                                </p>
+                                                <p className="text-xs text-gray-500">Connected</p>
                                             </div>
+                                            <div className="w-1.5 h-1.5 rounded-full bg-green-600"></div>
                                         </div>
-                                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                    </div>
-                                ))
+                                    ))}
+                                </div>
                             ) : (
                                 <div className="text-center py-8">
-                                    <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                                    <p className="text-gray-500">No platforms connected</p>
-                                    <Link
-                                        href="/dashboard/connect-accounts"
-                                        className="mt-3 inline-block text-sm text-blue-600 hover:text-blue-700 font-medium"
-                                    >
-                                        Connect your first account →
+                                    <p className="text-sm text-gray-600 mb-3">No accounts connected</p>
+                                    <Link href="/dashboard/connect-accounts" className="text-sm text-blue-600">
+                                        Connect account
                                     </Link>
                                 </div>
                             )}
-                        </div>
 
-                        <div className="mt-8 pt-6 border-t border-gray-100">
-                            <h4 className="text-sm font-medium text-gray-900 mb-3">Quick Actions</h4>
-                            <div className="grid grid-cols-2 gap-3">
-                                <Link
-                                    href="/dashboard/compose"
-                                    className="p-3 bg-blue-50 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors"
-                                >
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Plus className="w-4 h-4 text-blue-600" />
-                                        <span className="text-sm font-medium text-blue-700">New Post</span>
-                                    </div>
-                                    <p className="text-xs text-blue-600">Start composing</p>
-                                </Link>
-
-                                <Link
-                                    href="/dashboard/analytics"
-                                    className="p-3 bg-green-50 rounded-lg border border-green-100 hover:bg-green-100 transition-colors"
-                                >
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <BarChart3 className="w-4 h-4 text-green-600" />
-                                        <span className="text-sm font-medium text-green-700">Analytics</span>
-                                    </div>
-                                    <p className="text-xs text-green-600">View insights</p>
+                            <div className="mt-6 pt-4 border-t border-gray-200">
+                                <Link href="/dashboard/compose">
+                                    <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 border border-gray-300 rounded hover:bg-gray-50">
+                                        New Post
+                                    </button>
                                 </Link>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-6">
+                <div className="border border-gray-200 rounded p-6">
+                    <h2 className="text-lg font-bold text-gray-900 mb-6">Getting Started</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
-                            <h3 className="text-lg font-semibold text-gray-900">Getting Started</h3>
-                            <p className="text-sm text-gray-500">Next steps for your account</p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="p-4 border border-gray-200 rounded-lg">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-blue-50 rounded-lg">
-                                    <Users className="w-5 h-5 text-blue-600" />
-                                </div>
-                                <span className="font-medium text-gray-900">Connect Accounts</span>
-                            </div>
-                            <p className="text-sm text-gray-600 mb-4">Link your social media accounts to start publishing</p>
-                            <Link
-                                href="/dashboard/connect-accounts"
-                                className="inline-block text-sm font-medium text-blue-600 hover:text-blue-700"
-                            >
-                                Connect now →
+                            <h3 className="text-sm font-medium text-gray-900 mb-2">1. Connect Accounts</h3>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Link your LinkedIn, Twitter, and other social platforms to manage from one place.
+                            </p>
+                            <Link href="/dashboard/connect-accounts" className="text-sm text-blue-600">
+                                Get started
                             </Link>
                         </div>
 
-                        <div className="p-4 border border-gray-200 rounded-lg">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-purple-50 rounded-lg">
-                                    <Sparkles className="w-5 h-5 text-purple-600" />
-                                </div>
-                                <span className="font-medium text-gray-900">Try AI Enhance</span>
-                            </div>
-                            <p className="text-sm text-gray-600 mb-4">Improve your posts with AI-powered suggestions</p>
-                            <Link
-                                href="/dashboard/compose"
-                                className="inline-block text-sm font-medium text-purple-600 hover:text-purple-700"
-                            >
-                                Enhance content →
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-900 mb-2">2. Create Posts</h3>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Write and schedule posts to publish across all your connected accounts.
+                            </p>
+                            <Link href="/dashboard/compose" className="text-sm text-blue-600">
+                                Create post
                             </Link>
                         </div>
 
-                        <div className="p-4 border border-gray-200 rounded-lg">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-green-50 rounded-lg">
-                                    <BarChart3 className="w-5 h-5 text-green-600" />
-                                </div>
-                                <span className="font-medium text-gray-900">View Analytics</span>
-                            </div>
-                            <p className="text-sm text-gray-600 mb-4">Track your performance and insights</p>
-                            <Link
-                                href="/dashboard/analytics"
-                                className="inline-block text-sm font-medium text-green-600 hover:text-green-700"
-                            >
-                                View dashboard →
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-900 mb-2">3. View Analytics</h3>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Track performance metrics and engagement across your social accounts.
+                            </p>
+                            <Link href="/dashboard/analytics" className="text-sm text-blue-600">
+                                View analytics
                             </Link>
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     )

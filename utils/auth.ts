@@ -3,6 +3,7 @@ import type { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import LinkedInProvider from "next-auth/providers/linkedin";
+import FacebookProvider from "next-auth/providers/facebook";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
@@ -56,8 +57,12 @@ export const NEXT_AUTH: AuthOptions = {
             clientId: process.env.LINKEDIN_CLIENT_ID ?? "",
             clientSecret: process.env.LINKEDIN_CLIENT_SECRET ?? "",
         }),
-    ],
 
+        FacebookProvider({
+            clientId: process.env.FACEBOOK_APP_ID ?? "",
+            clientSecret: process.env.FACEBOOK_APP_SECRET ?? "",
+        }),
+    ],
     pages: {
         signIn: "/signin",
         error: "/signin",
