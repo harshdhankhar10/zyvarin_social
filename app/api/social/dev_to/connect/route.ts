@@ -1,6 +1,7 @@
 import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo"
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { canConnectMorePlatforms } from "@/app/dashboard/pricingUtils"
 
 export async function POST(request: Request) {
   try {
@@ -20,6 +21,14 @@ export async function POST(request: Request) {
         success: false,
         message: "API key is required" 
       }, { status: 400 })
+    }
+
+    const canConnect = await canConnectMorePlatforms(session.id)
+    if (!canConnect) {
+      return NextResponse.json({ 
+        success: false,
+        message: "Platform connection limit reached for your plan" 
+      }, { status: 403 })
     }
 
     const userResponse = await fetch('https://dev.to/api/users/me', {

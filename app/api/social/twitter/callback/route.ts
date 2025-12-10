@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { cookies } from 'next/headers'
+import { canConnectMorePlatforms } from "@/app/dashboard/pricingUtils"
 
 export async function GET(request: Request) {
   try {
@@ -35,14 +36,17 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${baseUrl}/dashboard/connect-accounts?error=invalid_state`)
     }
 
-    // Get code verifier from cookie if not in state
+    const canConnect = await canConnectMorePlatforms(userId)
+    if (!canConnect) {
+      return NextResponse.redirect(`${baseUrl}/dashboard/connect-accounts?error=platform_limit_reached`)
+    }
+
     if (!codeVerifier) {
       const cookieStore = await cookies()
       codeVerifier = cookieStore.get('twitter_code_verifier')?.value || ''
     }
 
     const redirectUri = `${baseUrl}/api/social/twitter/callback`
-    
 
     // Exchange code for access token
     const tokenResponse = await fetch('https://api.twitter.com/2/oauth2/token', {

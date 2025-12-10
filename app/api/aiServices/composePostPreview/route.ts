@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {GoogleGenAI} from '@google/genai';
 import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo";
 import prisma from "@/lib/prisma";
+import { canCreateAIContent } from "@/app/dashboard/pricingUtils";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -15,6 +16,15 @@ export async function POST(req: NextRequest){
     const user = await prisma.user.findUnique({
         where: {id: session.id}
     });
+
+    if(!user) {
+        return NextResponse.json({error: 'User not found'}, {status: 404});
+    }
+
+    const hasQuota = await canCreateAIContent(user.id);
+    if(!hasQuota) {
+        return NextResponse.json({error: 'AI generation quota reached for this month'}, {status: 403});
+    }
 
     try {
         const {content, selectedPlatforms, enhancements} = await req.json();

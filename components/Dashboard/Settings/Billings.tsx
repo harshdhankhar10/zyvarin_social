@@ -192,15 +192,53 @@ export default function BillingPage({ billingData }: BillingPageProps) {
         });
     };
 
+  const handleDowngrade = async (planId: string) => {
+    if (planId === billingData.user.currentPlan || isUpgrading) return
+    
+    setIsUpgrading(true)
+    setSelectedPlan(planId)
+    try {
+      const response = await axios.post('/api/dashboard/billing/change-plan', { newPlan: planId })
+      if (response.data.success) {
+        router.refresh()
+      }
+    } catch (error) {
+      console.error('Error downgrading plan:', error)
+      alert('Failed to downgrade plan')
+    } finally {
+      setIsUpgrading(false)
+    }
+  }
+
+  const getPlanHierarchy = (plan: string) => {
+    switch (plan) {
+      case 'FREE': return 0;
+      case 'CREATOR': return 1;
+      case 'PREMIUM': return 2;
+      default: return 0;
+    }
+  }
+
+  const isUpgradePath = (newPlan: string) => {
+    return getPlanHierarchy(newPlan) > getPlanHierarchy(billingData.user.currentPlan)
+  }
+
   const handleUpgrade = async (planId: string) => {
     if (planId === billingData.user.currentPlan || isUpgrading) return
+    
+    const isUpgrade = isUpgradePath(planId)
+    
+    if (!isUpgrade) {
+      await handleDowngrade(planId)
+      return
+    }
     
     setIsUpgrading(true)
     try {
       const response = await axios.post('/api/dashboard/billing/buy', {
         planId,
         price: getPlanPrice(planId)
-      } )
+      })
 
       const orderData = response.data;
 
@@ -694,8 +732,10 @@ export default function BillingPage({ billingData }: BillingPageProps) {
                   'Processing...'
                 ) : plan.current ? (
                   'Current Plan'
-                ) : (
+                ) : isUpgradePath(plan.id) ? (
                   `Upgrade to ${plan.name}`
+                ) : (
+                  `Downgrade to ${plan.name}`
                 )}
               </Button>
             </div>

@@ -1,6 +1,7 @@
 import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo"
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { canPublishPost } from "@/app/dashboard/pricingUtils"
 
 async function uploadImageToLinkedin(
   imageUrl: string, 
@@ -87,6 +88,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ 
         error: "LinkedIn posts are limited to 3000 characters" 
       }, { status: 400 })
+    }
+
+    if (!fromCron) {
+      const canPost = await canPublishPost(session.id)
+      if (!canPost) {
+        return NextResponse.json({ error: "Monthly post quota reached" }, { status: 403 })
+      }
     }
 
     let linkedinProvider;

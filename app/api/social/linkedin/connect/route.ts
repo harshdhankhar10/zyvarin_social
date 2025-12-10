@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo"
+import { canConnectMorePlatforms } from "@/app/dashboard/pricingUtils"
+
 export async function GET() {
   try {
     const session = await currentLoggedInUserInfo()
@@ -9,6 +11,11 @@ export async function GET() {
     
     if (!session?.id) {
       return ;
+    }
+
+    const canConnect = await canConnectMorePlatforms(session.id)
+    if (!canConnect) {
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/dashboard/connect-accounts?error=platform_limit_reached`)
     }
 
     const stateData = {

@@ -1,6 +1,7 @@
 import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo"
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { canPublishPost } from "@/app/dashboard/pricingUtils"
 
 export async function POST(request: Request) {
   try {
@@ -28,6 +29,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ 
         error: "Dev.to articles are limited to 65535 characters" 
       }, { status: 400 })
+    }
+
+    const canPost = await canPublishPost(session.id)
+    if (!canPost) {
+      return NextResponse.json({ error: "Monthly post quota reached" }, { status: 403 })
     }
 
     const user = await prisma.user.findUnique({

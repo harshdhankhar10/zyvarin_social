@@ -1,6 +1,7 @@
 import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo"
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { canPublishPost } from "@/app/dashboard/pricingUtils"
 
 export async function POST(request: Request) {
   try {
@@ -20,6 +21,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ 
         error: "Twitter posts are limited to 280 characters" 
       }, { status: 400 })
+    }
+
+    if (!fromCron) {
+      const canPost = await canPublishPost(session.id)
+      if (!canPost) {
+        return NextResponse.json({ error: "Monthly post quota reached" }, { status: 403 })
+      }
     }
 
     let twitterProvider;

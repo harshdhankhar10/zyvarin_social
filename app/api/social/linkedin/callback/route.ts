@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { canConnectMorePlatforms } from "@/app/dashboard/pricingUtils"
 
 export async function GET(request: Request) {
   try {
@@ -31,8 +32,12 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${baseUrl}/dashboard/connect-accounts?error=invalid_state`)
     }
 
+    const canConnect = await canConnectMorePlatforms(userId)
+    if (!canConnect) {
+      return NextResponse.redirect(`${baseUrl}/dashboard/connect-accounts?error=platform_limit_reached`)
+    }
+
     const redirectUri = `${baseUrl}/api/social/linkedin/callback`
-    
     const tokenResponse = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

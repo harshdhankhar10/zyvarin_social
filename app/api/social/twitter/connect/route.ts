@@ -1,6 +1,7 @@
 import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo"
 import { NextResponse } from "next/server"
 import crypto from "crypto"
+import { canConnectMorePlatforms } from "@/app/dashboard/pricingUtils"
 
 export async function GET() {
   try {
@@ -8,6 +9,12 @@ export async function GET() {
     
     if (!session) {
       return NextResponse.redirect('/api/auth/signin')
+    }
+
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+    const canConnect = await canConnectMorePlatforms(session.id)
+    if (!canConnect) {
+      return NextResponse.redirect(`${baseUrl}/dashboard/connect-accounts?error=platform_limit_reached`)
     }
 
     const codeVerifier = crypto.randomBytes(32).toString('base64url')
@@ -25,7 +32,6 @@ export async function GET() {
 
     const state = Buffer.from(JSON.stringify(stateData)).toString('base64')
     
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
     const redirectUri = `${baseUrl}/api/social/twitter/callback`
 
     const twitterAuthUrl = new URL('https://twitter.com/i/oauth2/authorize')
