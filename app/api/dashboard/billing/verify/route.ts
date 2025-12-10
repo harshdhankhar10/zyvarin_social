@@ -3,12 +3,20 @@ import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo";
 import crypto from "crypto";
 import prisma from "@/lib/prisma";
 import { sendMail } from "@/utils/mail";
+import { rateLimiters, getIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
     const user = await currentLoggedInUserInfo();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const identifier = getIdentifier(req, 'user', user.id);
+    const { success, limit, remaining, reset } = await checkRateLimit(rateLimiters.billingVerify, identifier);
+    
+    if (!success) {
+      return rateLimitResponse(limit, remaining, reset);
     }
 
     const {

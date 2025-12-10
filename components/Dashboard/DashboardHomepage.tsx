@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
     BarChart3, Users, TrendingUp,
     Linkedin, Twitter, Globe, CheckCircle,
-    Clock, Code2
+    Clock, Code2, SparklesIcon
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Button } from '../ui/button'
@@ -31,8 +31,8 @@ const DashboardHomepage = ({ data }: any) => {
     }
 
     return (
-        <div className="min-h-screen bg-white">
-            <div className="max-w-7xl mx-auto px-6 py-10">
+        <div className="min-h-screen">
+            <div className="">
                 
                 <div className="mb-12">
                     <div className="flex justify-between items-start">

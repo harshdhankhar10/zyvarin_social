@@ -3,6 +3,7 @@ import {GoogleGenAI} from '@google/genai';
 import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo";
 import prisma from "@/lib/prisma";
 import { canCreateAIContent } from "@/app/dashboard/pricingUtils";
+import { rateLimiters, getIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -13,6 +14,14 @@ export async function POST(req: NextRequest){
     if(!session){
         return NextResponse.json({error: 'Unauthorized'}, {status: 401});
     }
+
+    const identifier = getIdentifier(req, 'user', session.id);
+    const { success, limit, remaining, reset } = await checkRateLimit(rateLimiters.aiGeneration, identifier);
+    
+    if (!success) {
+        return rateLimitResponse(limit, remaining, reset);
+    }
+
     const user = await prisma.user.findUnique({
         where: {id: session.id}
     });

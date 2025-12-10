@@ -1,7 +1,8 @@
 import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo"
-import { NextResponse } from "next/server"
+import { NextResponse, NextRequest } from "next/server"
 import prisma from "@/lib/prisma"
 import { canPublishPost } from "@/app/dashboard/pricingUtils"
+import { rateLimiters, getIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 async function uploadImageToLinkedin(
   imageUrl: string, 
@@ -64,7 +65,7 @@ async function uploadImageToLinkedin(
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const session = await currentLoggedInUserInfo()
     if (!session) {
@@ -76,6 +77,13 @@ export async function POST(request: Request) {
 
     if (!session?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const identifier = getIdentifier(request, 'user', session.id);
+    const { success, limit, remaining, reset } = await checkRateLimit(rateLimiters.socialPost, identifier);
+    
+    if (!success) {
+      return rateLimitResponse(limit, remaining, reset);
     }
 
     const { content, mediaUrls = [], postType = 'immediate', scheduledFor = null, postId = null, fromCron = false } = await request.json()

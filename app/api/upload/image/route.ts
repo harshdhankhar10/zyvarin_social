@@ -2,12 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import axios from 'axios'
 import prisma from '@/lib/prisma'
 import { currentLoggedInUserInfo } from '@/utils/currentLogegdInUserInfo'
+import { rateLimiters, getIdentifier, checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
   const session = await currentLoggedInUserInfo()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const identifier = getIdentifier(req, 'user', session.id);
+  const { success, limit, remaining, reset } = await checkRateLimit(rateLimiters.uploadImage, identifier);
+  
+  if (!success) {
+    return rateLimitResponse(limit, remaining, reset);
+  }
+
   try {
     const formData = await req.formData()
     const file = formData.get('image') as File

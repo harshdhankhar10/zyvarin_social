@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo";
 import prisma from "@/lib/prisma";
+import { rateLimiters, getIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 
 const key_id = process.env.RAZORPAY_KEY_ID as string;
@@ -25,6 +26,14 @@ export async function POST(req: NextRequest){
             error : "UnAuthorized!"
         }, {status : 401})
     }
+
+    const identifier = getIdentifier(req, 'user', user.id);
+    const { success, limit, remaining, reset } = await checkRateLimit(rateLimiters.billingCreate, identifier);
+    
+    if (!success) {
+        return rateLimitResponse(limit, remaining, reset);
+    }
+
     try {
         const plans = ['FREE', 'CREATOR', 'PREMIUM'];
         const {planId, price} = await req.json();

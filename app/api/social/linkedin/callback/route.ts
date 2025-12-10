@@ -1,8 +1,16 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { canConnectMorePlatforms } from "@/app/dashboard/pricingUtils"
+import { rateLimiters, getIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  const identifier = getIdentifier(request, 'ip');
+  const { success, limit, remaining, reset } = await checkRateLimit(rateLimiters.oauthCallback, identifier);
+  
+  if (!success) {
+    return rateLimitResponse(limit, remaining, reset);
+  }
+
   try {
     const url = new URL(request.url)
     const code = url.searchParams.get('code')
