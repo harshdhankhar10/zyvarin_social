@@ -119,6 +119,121 @@ async function handlePendingInvoices() {
   };
 }
 
+async function handleSubscriptionExpiry() {
+  const { sendMail } = await import('@/utils/mail');
+  const now = new Date();
+  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  
+  const usersExpiringIn7Days = await prisma.user.findMany({
+    where: {
+      subscription_plan: { in: ['CREATOR', 'PREMIUM'] },
+      subscription_status: 'ACTIVE',
+      next_billing_date: {
+        gte: new Date(sevenDaysFromNow.getFullYear(), sevenDaysFromNow.getMonth(), sevenDaysFromNow.getDate(), 0, 0, 0),
+        lte: new Date(sevenDaysFromNow.getFullYear(), sevenDaysFromNow.getMonth(), sevenDaysFromNow.getDate(), 23, 59, 59)
+      }
+    }
+  });
+
+  let remindersSent = 0;
+  for (const user of usersExpiringIn7Days) {
+    try {
+      await sendMail({
+        to: user.email,
+        subject: '⏰ Your Zyvarin Subscription Expires in 7 Days',
+        htmlContent: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #333;">Hi ${user.fullName},</h2>
+            <p style="font-size: 16px; color: #555;">Your <strong>${user.subscription_plan}</strong> plan will expire on <strong>${user.next_billing_date?.toLocaleDateString()}</strong>.</p>
+            <p style="font-size: 16px; color: #555;">To continue enjoying premium features, please renew your subscription before the expiry date.</p>
+            <p style="font-size: 16px; color: #555;">If you don't renew, your account will be automatically downgraded to the FREE plan.</p>
+            <div style="margin: 30px 0;">
+              <a href="${process.env.NEXTAUTH_URL}/dashboard/billing" style="background-color: #4F46E5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Renew Now</a>
+            </div>
+            <p style="font-size: 14px; color: #888;">Thank you for using Zyvarin!</p>
+          </div>
+        `
+      });
+
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          senderType: 'SYSTEM',
+          title: '⏰ Subscription Expiring Soon',
+          message: `Your ${user.subscription_plan} plan expires in 7 days. Renew now to keep your premium features.`,
+          isRead: false
+        }
+      });
+
+      remindersSent++;
+    } catch (error) {
+      console.error(`Failed to send expiry reminder to ${user.email}:`, error);
+    }
+  }
+
+  const usersExpiredToday = await prisma.user.findMany({
+    where: {
+      subscription_plan: { in: ['CREATOR', 'PREMIUM'] },
+      subscription_status: 'ACTIVE',
+      next_billing_date: {
+        lte: now
+      }
+    }
+  });
+
+  let downgradedCount = 0;
+  for (const user of usersExpiredToday) {
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          subscription_plan: 'FREE',
+          subscription_status: 'INACTIVE',
+          next_billing_date: null,
+          updatedAt: new Date()
+        }
+      });
+
+      await sendMail({
+        to: user.email,
+        subject: '📉 Your Zyvarin Subscription Has Expired',
+        htmlContent: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #333;">Hi ${user.fullName},</h2>
+            <p style="font-size: 16px; color: #555;">Your <strong>${user.subscription_plan}</strong> plan has expired and your account has been downgraded to the <strong>FREE</strong> plan.</p>
+            <p style="font-size: 16px; color: #555;">You can still access basic features, but premium capabilities are now limited.</p>
+            <p style="font-size: 16px; color: #555;">Want to regain full access? Upgrade anytime!</p>
+            <div style="margin: 30px 0;">
+              <a href="${process.env.NEXTAUTH_URL}/pricing" style="background-color: #4F46E5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">View Plans</a>
+            </div>
+            <p style="font-size: 14px; color: #888;">Thank you for using Zyvarin!</p>
+          </div>
+        `
+      });
+
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          senderType: 'SYSTEM',
+          title: '📉 Subscription Expired',
+          message: `Your subscription has expired. Your account has been downgraded to FREE plan. Upgrade anytime to restore premium features.`,
+          isRead: false
+        }
+      });
+
+      downgradedCount++;
+    } catch (error) {
+      console.error(`Failed to downgrade user ${user.email}:`, error);
+    }
+  }
+
+  return {
+    remindersSent,
+    downgradedCount,
+    timestamp: new Date().toISOString()
+  };
+}
+
 export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get('authorization');
@@ -250,6 +365,7 @@ export async function GET(req: NextRequest) {
 
     const transactionResults = await handlePendingTransactions();
     const invoiceResults = await handlePendingInvoices();
+    const subscriptionResults = await handleSubscriptionExpiry();
 
     return NextResponse.json({
       success: true,
@@ -259,7 +375,8 @@ export async function GET(req: NextRequest) {
           results
         },
         transactions: transactionResults,
-        invoices: invoiceResults
+        invoices: invoiceResults,
+        subscriptions: subscriptionResults
       },
       timestamp: new Date().toISOString()
     });

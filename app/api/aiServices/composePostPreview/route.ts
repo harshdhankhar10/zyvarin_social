@@ -4,6 +4,7 @@ import { currentLoggedInUserInfo } from "@/utils/currentLogegdInUserInfo";
 import prisma from "@/lib/prisma";
 import { canCreateAIContent } from "@/app/dashboard/pricingUtils";
 import { rateLimiters, getIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { checkAndNotifyQuota } from "@/utils/quotaNotifications";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 

@@ -3,6 +3,7 @@ import { NextResponse, NextRequest } from "next/server"
 import prisma from "@/lib/prisma"
 import { canPublishPost } from "@/app/dashboard/pricingUtils"
 import { rateLimiters, getIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
+import { checkAndNotifyQuota } from "@/utils/quotaNotifications"
 
 async function uploadImageToLinkedin(
   imageUrl: string, 
@@ -102,6 +103,26 @@ export async function POST(request: NextRequest) {
       const canPost = await canPublishPost(session.id)
       if (!canPost) {
         return NextResponse.json({ error: "Monthly post quota reached" }, { status: 403 })
+      }
+
+      const duplicatePost = await prisma.post.findFirst({
+        where: {
+          content: content.trim(),
+          socialProvider: {
+            userId: session.id,
+            provider: 'linkedin'
+          },
+          status: { in: ['SCHEDULED', 'POSTED'] },
+          createdAt: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
+          }
+        }
+      });
+
+      if (duplicatePost) {
+        return NextResponse.json({ 
+          error: "You have already scheduled or posted this content in the last 24 hours" 
+        }, { status: 400 });
       }
     }
 
@@ -313,6 +334,10 @@ export async function POST(request: NextRequest) {
       where: { id: linkedinProvider.id },
       data: { lastUsedAt: new Date() }
     })
+
+    if (!isScheduled && !fromCron) {
+      checkAndNotifyQuota(session.id, 'posts').catch(err => console.error('Quota notification failed:', err));
+    }
 
     return NextResponse.json({
       success: true,

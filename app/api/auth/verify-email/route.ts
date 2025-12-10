@@ -188,6 +188,15 @@ export async function PATCH(req: NextRequest) {
                     data: { isEmailVerified: true, status: 'ACTIVE' },
                 });
 
+                await prisma.notification.create({
+                    data : {
+                        userId : user.id,
+                        senderType : "ADMIN",
+                        title : "Welcome to Zyvarin Social! 🎉",
+                        message : "Hi "+ user.fullName +", we're excited to have you on board. Start exploring and connecting with Zyvarin Social today!",
+                    }
+                })
+
                 return NextResponse.json({ message: "Your account has been verified successfully" }, { status: 200 });
             } else {
                 return NextResponse.json({ error: "The OTP You entered has expired" }, { status: 400 });

@@ -14,7 +14,8 @@ import {
   Calendar,
   Calendar1,
   Calendar1Icon,
-  SparklesIcon
+  SparklesIcon,
+  ListTodo
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -25,8 +26,8 @@ const Sidebar = () => {
     { id: '/dashboard', icon: LayoutGrid, label: 'Home', priority: 'high' },
     { id: '/dashboard/calendar', icon: Calendar1Icon, label: 'Calendar', priority: 'high' },
     { id: '/dashboard/compose', icon: PenTool, label: 'Compose', priority: 'high' },
+    { id: '/dashboard/posts', icon: ListTodo, label: 'Posts', priority: 'high' },
     { id: '/dashboard/analytics', icon: BarChart3, label: 'Analytics', priority: 'high' },
-    // { id: '/dashboard/tools', icon: SparklesIcon, label: 'Tools', priority: 'high' },
     { id: '/dashboard/connect-accounts', icon: Link2Icon, label: 'Connect Accounts', priority: 'high' },
     { id: '/dashboard/settings', icon: Settings, label: 'Settings', priority: 'high' },
   ];
