@@ -229,16 +229,30 @@ export async function POST(request: NextRequest) {
 
     const tweetId = tweetResult.data.id
 
-    const post = await prisma.post.create({
-      data: {
-        socialProviderId: updatedProvider.id,
-        content,
-        status: isScheduled ? 'SCHEDULED' : 'POSTED',
-        scheduledFor: isScheduled && scheduledFor ? new Date(scheduledFor) : null,
-        postedAt: isScheduled ? null : new Date(),
-        mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
-      }
-    })
+    let post;
+
+    if (postId) {
+      post = await prisma.post.update({
+        where: { id: postId },
+        data: {
+          status: 'POSTED',
+          postedAt: new Date(),
+          platformPostId: tweetId
+        }
+      })
+    } else {
+      post = await prisma.post.create({
+        data: {
+          socialProviderId: updatedProvider.id,
+          content,
+          status: isScheduled ? 'SCHEDULED' : 'POSTED',
+          scheduledFor: isScheduled && scheduledFor ? new Date(scheduledFor) : null,
+          postedAt: isScheduled ? null : new Date(),
+          mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
+          platformPostId: tweetId
+        }
+      })
+    }
     await prisma.socialProvider.update({
       where: { id: updatedProvider.id },
       data: { lastUsedAt: new Date() }

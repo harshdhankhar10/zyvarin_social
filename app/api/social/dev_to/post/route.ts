@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { content, mediaUrls = [], published = true, tags = [], postType = 'immediate', scheduledFor = null } = await request.json()
+    const { content, mediaUrls = [], published = true, tags = [], postType = 'immediate', scheduledFor = null, postId = null, fromCron = false } = await request.json()
 
     if (!content?.trim()) {
       return NextResponse.json({ error: "Content is required" }, { status: 400 })
@@ -40,48 +40,63 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const canPost = await canPublishPost(session.id)
-    if (!canPost) {
-      return NextResponse.json({ error: "Monthly post quota reached" }, { status: 403 })
-    }
-
-    const duplicatePost = await prisma.post.findFirst({
-      where: {
-        content: content.trim(),
-        socialProvider: {
-          userId: session.id,
-          provider: 'dev_to'
-        },
-        status: { in: ['SCHEDULED', 'POSTED'] },
-        createdAt: {
-          gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
-        }
+    if (!fromCron) {
+      const canPost = await canPublishPost(session.id)
+      if (!canPost) {
+        return NextResponse.json({ error: "Monthly post quota reached" }, { status: 403 })
       }
-    });
 
-    if (duplicatePost) {
-      return NextResponse.json({ 
-        error: "You have already scheduled or posted this content in the last 24 hours" 
-      }, { status: 400 });
+      const duplicatePost = await prisma.post.findFirst({
+        where: {
+          content: content.trim(),
+          socialProvider: {
+            userId: session.id,
+            provider: 'dev_to'
+          },
+          status: { in: ['SCHEDULED', 'POSTED'] },
+          createdAt: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
+          }
+        }
+      });
+
+      if (duplicatePost) {
+        return NextResponse.json({ 
+          error: "You have already scheduled or posted this content in the last 24 hours" 
+        }, { status: 400 });
+      }
     }
 
-    const user = await prisma.user.findUnique({
-      where: {
-        id: session.id,
-      },
-    })
+    let devtoProvider
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    if (fromCron && postId) {
+      const existingPost = await prisma.post.findUnique({
+        where: { id: postId },
+        include: {
+          socialProvider: true
+        }
+      })
+
+      devtoProvider = existingPost?.socialProvider
+    } else {
+      const user = await prisma.user.findUnique({
+        where: {
+          id: session.id,
+        },
+      })
+
+      if (!user) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 })
+      }
+
+      devtoProvider = await prisma.socialProvider.findFirst({
+        where: {
+          userId: user.id,
+          provider: 'devto',
+          isConnected: true,
+        },
+      })
     }
-
-    const devtoProvider = await prisma.socialProvider.findFirst({
-      where: {
-        userId: user.id,
-        provider: 'devto',
-        isConnected: true,
-      },
-    })
 
     if (!devtoProvider?.access_token) {
       return NextResponse.json({ error: "Dev.to not connected" }, { status: 400 })
@@ -185,16 +200,26 @@ export async function POST(request: NextRequest) {
     const devtoArticleId = devtoResult.id
     const articleUrl = devtoResult.url
 
-    const post = await prisma.post.create({
-      data: {
-        socialProviderId: devtoProvider.id,
-        content,
-        mediaUrls,
-        status: isScheduled ? 'SCHEDULED' : 'POSTED',
-        scheduledFor: isScheduled && scheduledFor ? new Date(scheduledFor) : null,
-        postedAt: isScheduled ? null : new Date()
-      }
-    })
+    const post = postId
+      ? await prisma.post.update({
+          where: { id: postId },
+          data: {
+            status: 'POSTED',
+            postedAt: new Date(),
+            platformPostId: devtoArticleId
+          }
+        })
+      : await prisma.post.create({
+          data: {
+            socialProviderId: devtoProvider.id,
+            content,
+            mediaUrls,
+            status: isScheduled ? 'SCHEDULED' : 'POSTED',
+            scheduledFor: isScheduled && scheduledFor ? new Date(scheduledFor) : null,
+            postedAt: isScheduled ? null : new Date(),
+            platformPostId: devtoArticleId
+          }
+        })
 
     await prisma.socialProvider.update({
       where: { id: devtoProvider.id },

@@ -314,7 +314,8 @@ export async function POST(request: NextRequest) {
         where: { id: postId },
         data: {
           status: 'POSTED',
-          postedAt: new Date()
+          postedAt: new Date(),
+          platformPostId: linkedinPostIdResult
         }
       })
     } else {
@@ -325,7 +326,8 @@ export async function POST(request: NextRequest) {
           mediaUrls,
           status: isScheduled ? 'SCHEDULED' : 'POSTED',
           scheduledFor: isScheduled && scheduledFor ? new Date(scheduledFor) : null,
-          postedAt: isScheduled ? null : new Date()
+          postedAt: isScheduled ? null : new Date(),
+          platformPostId: linkedinPostIdResult
         }
       })
     }

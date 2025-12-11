@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import axios from 'axios';
+import { fetchAndStoreMetricsForUser } from '@/lib/socialMetrics';
 
 async function publishPostServer(postId: string, platform: string, content: string, mediaUrls: string[]) {
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
@@ -234,6 +235,42 @@ async function handleSubscriptionExpiry() {
   };
 }
 
+async function handleSocialMetrics() {
+  const windowInDays = 60;
+  const since = new Date(Date.now() - windowInDays * 24 * 60 * 60 * 1000);
+
+  const posts = await prisma.post.findMany({
+    where: {
+      status: 'POSTED',
+      platformPostId: { not: null },
+      postedAt: { gte: since }
+    },
+    select: {
+      socialProvider: {
+        select: { userId: true }
+      }
+    }
+  });
+
+  const userIds = Array.from(new Set(posts.map((post) => post.socialProvider.userId)));
+  const results: Record<string, any> = {};
+
+  for (const userId of userIds) {
+    try {
+      results[userId] = await fetchAndStoreMetricsForUser(userId, windowInDays);
+    } catch (error) {
+      console.error(`Failed to fetch metrics for user ${userId}:`, error);
+      results[userId] = { postsProcessed: 0, updated: 0, skipped: 0, errors: ['failed'] };
+    }
+  }
+
+  return {
+    usersProcessed: userIds.length,
+    results,
+    timestamp: new Date().toISOString()
+  };
+}
+
 export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get('authorization');
@@ -366,6 +403,7 @@ export async function GET(req: NextRequest) {
     const transactionResults = await handlePendingTransactions();
     const invoiceResults = await handlePendingInvoices();
     const subscriptionResults = await handleSubscriptionExpiry();
+    const socialMetricsResults = await handleSocialMetrics();
 
     return NextResponse.json({
       success: true,
@@ -376,7 +414,8 @@ export async function GET(req: NextRequest) {
         },
         transactions: transactionResults,
         invoices: invoiceResults,
-        subscriptions: subscriptionResults
+        subscriptions: subscriptionResults,
+        socialMetrics: socialMetricsResults
       },
       timestamp: new Date().toISOString()
     });

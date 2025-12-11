@@ -99,5 +99,9 @@ export default async function AnalyticsPage() {
     })).reverse(),
   }
 
-  return <AnalyticsClient data={analyticsData} />
+  return (
+    <div>
+      <AnalyticsClient data={analyticsData} />
+    </div>
+  )
 }

@@ -100,6 +100,7 @@ model Post {
   status           PostStatus    @default(POSTED)
   errorMessage     String?
   mediaUrls        String[]
+  platformPostId   String?
 
   scheduledFor DateTime?
   postedAt         DateTime?
@@ -107,11 +108,34 @@ model Post {
 
   socialProvider SocialProvider @relation(fields: [socialProviderId], references: [id], onDelete: Cascade)
 
+  metrics      SocialMetric[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([scheduledFor])
   @@index([status])
+  @@index([platformPostId])
+  @@unique([socialProviderId, platformPostId])
+}
+
+model SocialMetric {
+  id            String   @id @default(cuid())
+  postId        String   @unique
+  platform      String
+  impressions   Int      @default(0)
+  clicks        Int      @default(0)
+  likes         Int      @default(0)
+  comments      Int      @default(0)
+  shares        Int      @default(0)
+  ctr           Float?
+  videoViews    Int?
+  followsGained Int?
+  collectedAt   DateTime @default(now())
+
+  post          Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([platform, collectedAt])
 }
 
 enum SenderType {
@@ -312,3 +336,4 @@ model BlogDownvote {
   @@index([blogId])
   @@index([userId])
 }
+
