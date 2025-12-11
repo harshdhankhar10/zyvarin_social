@@ -30,6 +30,19 @@ const DashboardHomepage = ({ data }: any) => {
         return <Clock className="w-4 h-4 text-amber-600" />
     }
 
+    const getSusbscriptionStatus = (plan: string) =>{
+        switch(plan){
+            case 'FREE':
+                return <span className="text-sm text-gray-600">Free Plan</span>
+            case 'CREATOR':
+                return <span className="bg-yellow-100 text-yellow-800 text-sm px-3 py-1 rounded-full">Creator Plan</span>
+            case 'PREMIUM':
+                return <span className="bg-purple-100 text-purple-800 text-sm px-3 py-1 rounded-full">Premium Plan</span>
+            default:
+                return <span className="text-sm text-gray-600">Free Plan</span>
+        }
+    }
+
     return (
         <div className="min-h-screen">
             <div className="">
@@ -50,9 +63,7 @@ const DashboardHomepage = ({ data }: any) => {
                                     Upgrade Plan
                                 </Button>
                             ) : (
-                                <span className="text-sm text-gray-600">
-                                    {data.user.plan} Plan
-                                </span>
+                                getSusbscriptionStatus(data.user.plan)
                             )}
                         </div>
                     </div>
@@ -87,9 +98,9 @@ const DashboardHomepage = ({ data }: any) => {
                             <BarChart3 className="w-4 h-4 text-gray-400" />
                         </div>
                         <p className="text-2xl font-bold text-gray-900">
-                            {data.remainingAIGenerations}
+                            {data.stats.aiUsesThisMonth}
                         </p>
-                        <p className="text-xs text-gray-500 mt-2">this month</p>
+                        <p className="text-xs text-gray-500 mt-2">{data.remainingAIGenerations} remaining AI generations </p>
                     </div>
 
                     <div className="border border-gray-200 rounded p-6">
