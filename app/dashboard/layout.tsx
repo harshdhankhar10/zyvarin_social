@@ -46,6 +46,11 @@ export default async function RootLayout({
   if (!user) {
     redirect('/signin');
   }
+
+  if (user.status !== 'ACTIVE') {
+    redirect('/account-restricted');
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       <TopNavbar user = {user} />

@@ -48,6 +48,9 @@ model User {
   notifications     Notification[]
   invoices          Invoice[]
   transactions      Transaction[]
+  blogComments      BlogComment[]
+  blogUpvotes       BlogUpvote[]
+  blogDownvotes     BlogDownvote[]
 }
 
 model SocialProvider {
@@ -219,5 +222,93 @@ model Transaction {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([userId])
+}
+
+model Blog {
+  id                String      @id @default(cuid())
+  title             String      @unique
+  slug              String      @unique
+  excerpt           String      @db.Text
+  content           String      @db.Text
+  featuredImage     String?
+  author            String      @default("Zyvarin Team")
+  category          String      @default("General")
+  tags              String[]    @default([])
+  
+  published         Boolean     @default(false)
+  featured          Boolean     @default(false)
+  
+  viewCount         Int         @default(0)
+  readTime          Int
+
+  upvotes          Int         @default(0)
+  downvotes        Int         @default(0)
+  
+  seoTitle          String?
+  seoDescription    String?
+  seoKeywords       String[]    @default([])
+  
+  comments         BlogComment[]
+  userUpvotes      BlogUpvote[]
+  userDownvotes    BlogDownvote[]
+  
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  publishedAt       DateTime?
+  
+  @@index([slug])
+  @@index([published])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model BlogComment {
+  id        String   @id @default(cuid())
+  blogId    String
+  userId    String
+  
+  content   String   @db.Text
+  
+  approved  Boolean  @default(true)
+  
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([blogId])
+  @@index([userId])
+  @@unique([blogId, userId, createdAt])
+}
+
+model BlogUpvote {
+  id        String   @id @default(cuid())
+  blogId    String
+  userId    String
+  
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([blogId, userId])
+  @@index([blogId])
+  @@index([userId])
+}
+
+model BlogDownvote {
+  id        String   @id @default(cuid())
+  blogId    String
+  userId    String
+  
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([blogId, userId])
+  @@index([blogId])
   @@index([userId])
 }
