@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play } from "lucide-react";
+import Link from "next/link";
 
 const HeroSection = () => {
   return (
@@ -23,18 +24,20 @@ const HeroSection = () => {
             Stop juggling multiple tools. Zyvarin brings scheduling, analytics, AI content generation, and team collaboration into one powerful platform trusted by over 50,000 businesses worldwide.
           </p>
 
-          <div className="animate-fade-up-delay-3 flex flex-col sm:flex-row gap-4 justify-center items-center mb-6">
-            <Button size="xl" className="group w-full sm:w-auto shadow-lg hover-glow">
+          {/* <div className="animate-fade-up-delay-3 flex flex-col sm:flex-row gap-4 justify-center items-center mb-6"> */}
+              {/* <Link href="/signup" prefetch = {true}>
+                <Button size="xl" className="group w-full sm:w-auto shadow-lg hover-glow">
               Start your free trial
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </Button>
-            <Button variant="outline" size="xl" className="w-full sm:w-auto group">
+                </Link> */}
+            {/* <Button variant="outline" size="xl" className="w-full sm:w-auto group">
               <Play className="w-4 h-4 mr-1 group-hover:scale-110 transition-transform" />
               Watch 2-min demo
-            </Button>
-          </div>
+            </Button> */}
+          {/* </div> */}
 
-          <p className="animate-fade-up-delay-4 text-sm text-muted-foreground">
+          <p className="animate-fade-up-delay-4 -mt-4 text-sm text-muted-foreground">
             No credit card required • 100% free trial • Instant access
           </p>
         </div>
