@@ -73,12 +73,7 @@ const Features = () => {
                 <h3 className="text-xl font-bold text-slate-900 mb-2">OAuth 2.0 Security</h3>
                 <p className="text-slate-500 text-sm">We never store your passwords. All connections use official API tokens, encrypted at rest.</p>
               </div>
-              <div className="mt-4 flex items-center gap-2 text-green-600 text-xs font-bold uppercase">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
-                </svg>
-                SOC2 Compliant
-              </div>
+             
             </div>
 
             <div className="bento-card p-0 flex flex-col relative group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
