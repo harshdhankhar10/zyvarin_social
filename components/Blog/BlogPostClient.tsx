@@ -43,7 +43,26 @@ interface CurrentUser {
   avatarUrl: string | null
 }
 
-export default function BlogPostClient({ blog, currentUser }: { blog: Blog; currentUser: CurrentUser | null }) {
+interface RelatedBlog {
+  id: string
+  title: string
+  slug: string
+  featuredImage?: string | null
+  category: string
+  readTime: number
+  publishedAt: Date | null
+  createdAt: Date
+}
+
+export default function BlogPostClient({
+  blog,
+  currentUser,
+  relatedBlogs
+}: {
+  blog: Blog
+  currentUser: CurrentUser | null
+  relatedBlogs: RelatedBlog[]
+}) {
   const [userUpvoted, setUserUpvoted] = useState(false)
   const [userDownvoted, setUserDownvoted] = useState(false)
   const [upvotes, setUpvotes] = useState(blog.upvotes)
@@ -53,7 +72,6 @@ export default function BlogPostClient({ blog, currentUser }: { blog: Blog; curr
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [isLoadingVotes, setIsLoadingVotes] = useState(true)
 
-  // Fetch vote status from server
   useEffect(() => {
     const fetchVoteStatus = async () => {
       try {
@@ -72,7 +90,6 @@ export default function BlogPostClient({ blog, currentUser }: { blog: Blog; curr
     fetchVoteStatus()
   }, [blog.id])
 
-  // Fetch comments
   useEffect(() => {
     const fetchComments = async () => {
       try {
@@ -94,8 +111,9 @@ export default function BlogPostClient({ blog, currentUser }: { blog: Blog; curr
       window.location.href = '/signin'
       return
     }
-    
+
     try {
+      setUserUpvoted(true) 
       const res = await fetch(`/api/blog/${blog.id}/upvote`, { method: 'POST' })
       if (res.ok) {
         const data = await res.json()
@@ -120,8 +138,10 @@ export default function BlogPostClient({ blog, currentUser }: { blog: Blog; curr
       window.location.href = '/signin'
       return
     }
-    
+
     try {
+      setUserDownvoted(true)
+      
       const res = await fetch(`/api/blog/${blog.id}/downvote`, { method: 'POST' })
       if (res.ok) {
         const data = await res.json()
@@ -177,7 +197,7 @@ export default function BlogPostClient({ blog, currentUser }: { blog: Blog; curr
       })
 
       if (res.ok) {
-        setComments(comments.filter(c => c.id !== commentId))
+        setComments(comments.filter((c) => c.id !== commentId))
       } else {
         const error = await res.json()
         alert(error.error || 'Failed to delete comment')
@@ -189,86 +209,100 @@ export default function BlogPostClient({ blog, currentUser }: { blog: Blog; curr
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-3xl mx-auto px-4 py-12">
-        <Link href="/blog" className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-8">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="lg:col-span-8 space-y-8">
+        <Link
+          href="/blog"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-slate-900"
+        >
           <ChevronLeft className="w-4 h-4" />
-          Back to Blog
+          Back to blog
         </Link>
 
-        {blog.featuredImage && (
-          <img
-            src={blog.featuredImage}
-            alt={blog.title}
-            className="w-full h-96 object-cover rounded-lg mb-8"
-          />
-        )}
+        <div className="bg-white/90 backdrop-blur rounded-3xl border border-slate-100 shadow-[0_20px_60px_-32px_rgba(15,23,42,0.35)] overflow-hidden">
+          {blog.featuredImage && (
+            <div className="h-80 w-full overflow-hidden">
+              <img src={blog.featuredImage} alt={blog.title} className="h-full w-full object-cover" />
+            </div>
+          )}
 
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">{blog.category}</span>
-            <span className="text-gray-500 text-sm">{blog.readTime} min read</span>
-          </div>
+          <div className="p-8 space-y-6">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+              <Link
+                href={`/blog/categories/${encodeURIComponent(blog?.category || 'general')}`}
+                className="px-3 py-1 rounded-full bg-slate-900 text-white"
+              >
+                {blog?.category || 'General'}
+              </Link>
+              <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700">
+                {blog?.readTime || 0} min read
+              </span>
+              <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700">
+                {formatDate(new Date(blog?.publishedAt || blog?.createdAt))}
+              </span>
+              <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700">{blog?.viewCount || 0} views</span>
+            </div>
 
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">{blog.title}</h1>
+            <div className="space-y-3">
+              <h1 className="text-4xl font-semibold text-slate-900 leading-tight">{blog?.title || 'Untitled'}</h1>
+              <p className="text-slate-600">By {blog?.author || 'Zyvarin Team'}</p>
+            </div>
 
-          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 border-b border-gray-200 pb-6">
-            <span>By {blog.author}</span>
-            <span>{formatDate(new Date(blog.publishedAt || blog.createdAt))}</span>
-            <span>{blog.viewCount} views</span>
+            <div className="prose prose-lg max-w-none text-slate-900" dangerouslySetInnerHTML={{ __html: blog?.content || '' }} />
+
+            {blog?.tags && blog.tags.length > 0 && (
+              <div className="pt-4 border-t border-slate-100 flex flex-wrap gap-2">
+                {blog.tags.map((tag) => (
+                  <Link
+                    key={tag}
+                    href={`/blog/tags/${encodeURIComponent(tag)}`}
+                    className="text-xs px-3 py-2 rounded-full bg-slate-50 border border-slate-100 text-slate-700"
+                  >
+                    #{tag}
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="prose prose-lg max-w-none mb-12" dangerouslySetInnerHTML={{ __html: blog.content }} />
-
-        {blog.tags.length > 0 && (
-          <div className="mb-12 pt-8 border-t border-gray-200">
-            <div className="flex flex-wrap gap-2">
-              {blog.tags.map((tag) => (
-                <span key={tag} className="bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full">
-                  {tag}
-                </span>
-              ))}
-            </div>
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex flex-wrap items-center gap-4 justify-between">
+          <div className="flex items-center gap-3 text-slate-700">
+            <span className="text-sm">Was this helpful?</span>
           </div>
-        )}
-
-        <div className="border-y border-gray-200 py-8">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
             <button
               onClick={handleUpvote}
               disabled={isLoadingVotes}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
                 userUpvoted
-                  ? 'bg-blue-100 text-blue-600'
-                  : 'bg-gray-100 text-gray-600 hover:bg-blue-100 hover:text-blue-600'
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              <ThumbsUp className="w-5 h-5" />
+              <ThumbsUp className="w-4 h-4" />
               <span>{upvotes}</span>
             </button>
             <button
               onClick={handleDownvote}
               disabled={isLoadingVotes}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
                 userDownvoted
-                  ? 'bg-red-100 text-red-600'
-                  : 'bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600'
+                  ? 'bg-red-50 text-red-700 border border-red-200'
+                  : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              <ThumbsDown className="w-5 h-5" />
+              <ThumbsDown className="w-4 h-4" />
               <span>{downvotes}</span>
             </button>
           </div>
         </div>
 
-        {/* Comments Section */}
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Comments ({comments.length})
-          </h2>
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-slate-900">Comments ({comments.length})</h2>
+          </div>
 
-          {/* Comment Form */}
           {currentUser ? (
             <form onSubmit={handleSubmitComment} className="mb-8">
               <div className="flex gap-3">
@@ -280,7 +314,7 @@ export default function BlogPostClient({ blog, currentUser }: { blog: Blog; curr
                       className="w-10 h-10 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">
+                    <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white font-semibold">
                       {currentUser.fullName?.[0]?.toUpperCase() || 'U'}
                     </div>
                   )}
@@ -289,42 +323,35 @@ export default function BlogPostClient({ blog, currentUser }: { blog: Blog; curr
                   <textarea
                     value={commentContent}
                     onChange={(e) => setCommentContent(e.target.value)}
-                    placeholder="Add a comment..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    placeholder="Share your thoughts"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 resize-none"
                     rows={3}
                     disabled={isSubmittingComment}
                   />
-                  <div className="flex justify-end mt-2">
+                  <div className="flex justify-end mt-3">
                     <button
                       type="submit"
                       disabled={!commentContent.trim() || isSubmittingComment}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Send className="w-4 h-4" />
-                      {isSubmittingComment ? 'Posting...' : 'Post Comment'}
+                      {isSubmittingComment ? 'Posting...' : 'Post comment'}
                     </button>
                   </div>
                 </div>
               </div>
             </form>
           ) : (
-            <div className="mb-8 p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
-              <p className="text-gray-600">
-                Please{' '}
-                <Link href="/signin" className="text-blue-600 hover:underline">
-                  sign in
-                </Link>{' '}
-                to comment
+            <div className="mb-8 p-4 bg-slate-50 border border-slate-100 rounded-2xl text-center text-slate-700">
+              <p>
+                Please <Link href="/signin" className="text-slate-900 font-semibold hover:underline">sign in</Link> to join the conversation.
               </p>
             </div>
           )}
 
-          {/* Comments List */}
           <div className="space-y-6">
             {comments.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">
-                No comments yet. Be the first to comment!
-              </p>
+              <p className="text-slate-500 text-center py-6">No comments yet. Be the first to comment.</p>
             ) : (
               comments.map((comment) => (
                 <div key={comment.id} className="flex gap-3">
@@ -336,33 +363,29 @@ export default function BlogPostClient({ blog, currentUser }: { blog: Blog; curr
                         className="w-10 h-10 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center text-white font-semibold">
+                      <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white font-semibold">
                         {comment.user.fullName?.[0]?.toUpperCase() || 'U'}
                       </div>
                     )}
                   </div>
                   <div className="flex-1">
-                    <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="bg-slate-50 rounded-2xl p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <span className="font-semibold text-gray-900">
-                            {comment.user.fullName || 'Anonymous'}
-                          </span>
-                          <span className="text-gray-500 text-sm ml-2">
-                            {formatDate(new Date(comment.createdAt))}
-                          </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-slate-900">{comment.user.fullName || 'Anonymous'}</span>
+                          <span className="text-xs text-slate-500">{formatDate(new Date(comment.createdAt))}</span>
                         </div>
                         {currentUser?.email === comment.user.email && (
                           <button
                             onClick={() => handleDeleteComment(comment.id)}
-                            className="text-red-600 hover:text-red-800 transition-colors"
+                            className="text-red-600 hover:text-red-700"
                             title="Delete comment"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         )}
                       </div>
-                      <p className="text-gray-700 whitespace-pre-wrap">{comment.content}</p>
+                      <p className="text-slate-700 whitespace-pre-wrap">{comment.content}</p>
                     </div>
                   </div>
                 </div>
@@ -371,6 +394,86 @@ export default function BlogPostClient({ blog, currentUser }: { blog: Blog; curr
           </div>
         </div>
       </div>
+
+      <aside className="lg:col-span-4 space-y-6 pt-14">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">About this post</h3>
+          <div className="space-y-3 text-sm text-slate-700">
+            <div className="flex items-center justify-between">
+              <span>Category</span>
+              <Link
+                href={`/blog/categories/${encodeURIComponent(blog?.category || 'general')}`}
+                className="px-3 py-1 rounded-full bg-slate-900 text-white text-xs"
+              >
+                {blog?.category || 'General'}
+              </Link>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Published</span>
+              <span className="font-medium text-slate-900">{formatDate(new Date(blog?.publishedAt || blog?.createdAt))}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Read time</span>
+              <span className="font-medium text-slate-900">{blog?.readTime || 0} minutes</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Views</span>
+              <span className="font-medium text-slate-900">{blog?.viewCount || 0}</span>
+            </div>
+          </div>
+          {blog?.tags && blog.tags.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {blog.tags.map((tag) => (
+                <Link
+                  key={tag}
+                  href={`/blog/tags/${encodeURIComponent(tag)}`}
+                  className="text-xs px-3 py-2 rounded-full bg-slate-50 border border-slate-100 text-slate-700"
+                >
+                  #{tag}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-slate-900">Related posts</h3>
+            <Link href="/blog" className="text-xs text-slate-500 hover:text-slate-700">
+              View all
+            </Link>
+          </div>
+          <div className="space-y-4">
+            {relatedBlogs.length === 0 ? (
+              <p className="text-slate-500 text-sm">No related posts yet.</p>
+            ) : (
+              relatedBlogs.map((related) => (
+                <Link
+                  key={related.id}
+                  href={`/blog/${related.slug}`}
+                  className="flex gap-3 items-center rounded-2xl border border-slate-100 p-3"
+                >
+                  <div className="h-16 w-20 rounded-xl overflow-hidden bg-slate-900 text-white flex items-center justify-center text-lg font-semibold">
+                    {related?.featuredImage ? (
+                      <img src={related.featuredImage} alt={related?.title || ''} className="h-full w-full object-cover" />
+                    ) : (
+                      <span>{related?.title?.slice(0, 1) || '?'}</span>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-slate-900 line-clamp-2">{related?.title || 'Untitled'}</p>
+                    <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                      <span>{related?.readTime || 0} min</span>
+                      <span>•</span>
+                      <span>{formatDate(new Date(related?.publishedAt || related?.createdAt))}</span>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+        </div>
+      </aside>
     </div>
   )
 }

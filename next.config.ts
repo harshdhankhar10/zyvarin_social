@@ -42,6 +42,10 @@ const nextConfig: NextConfig = {
     ],
   },
   reactCompiler: true,
+  productionBrowserSourceMaps: false,
+  experimental: {
+    optimizePackageImports: ["@radix-ui/react-*"]
+  }
 };
 
 export default nextConfig;

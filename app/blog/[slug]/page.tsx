@@ -1,6 +1,9 @@
+import Navbar from '@/components/Global/Navbar'
+import Footer from '@/components/Global/Footer'
 import prisma from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import BlogPostClient from '@/components/Blog/BlogPostClient'
+import { currentLoggedInUserInfo } from '@/utils/currentLogegdInUserInfo'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params
@@ -43,14 +46,42 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     data: { viewCount: { increment: 1 } }
   })
 
-  const { currentLoggedInUserInfo } = await import('@/utils/currentLogegdInUserInfo')
-  const user = await currentLoggedInUserInfo()
-  const currentUser = user ? {
-    id: user.id,
-    fullName: user.fullName,
-    email: user.email,
-    avatarUrl: user.avatarUrl
-  } : null
+  const relatedBlogs = await prisma.blog.findMany({
+    where: {
+      published: true,
+      slug: { not: resolvedParams.slug },
+      OR: [
+        { category: blog.category },
+        ...(blog.tags.length > 0
+          ? [
+              {
+                tags: { hasSome: blog.tags }
+              }
+            ]
+          : [])
+      ]
+    },
+    orderBy: [{ featured: 'desc' }, { publishedAt: 'desc' }, { createdAt: 'desc' }],
+    take: 5
+  })
 
-  return <BlogPostClient blog={blog} currentUser={currentUser} />
+  const user = await currentLoggedInUserInfo()
+  const currentUser = user
+    ? {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        avatarUrl: user.avatarUrl
+      }
+    : null
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100">
+      <Navbar />
+      <main className="max-w-6xl mx-auto px-4 pt-10 pb-16">
+        <BlogPostClient blog={blog} currentUser={currentUser} relatedBlogs={relatedBlogs || []} />
+      </main>
+      <Footer />
+    </div>
+  )
 }
