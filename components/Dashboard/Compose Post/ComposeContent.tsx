@@ -48,6 +48,9 @@ const ComposeContent = ({
   const [selectedEnhanceOptions, setSelectedEnhanceOptions] = useState<string[]>(['Professional'])
   const [mediaUrls, setMediaUrls] = useState<string[]>([])
   const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null)
+  const [mediaAlts, setMediaAlts] = useState<string[]>([])
+  const [mediaCrops, setMediaCrops] = useState<("auto" | "square" | "wide")[]>([])
+  const [uploadProgress, setUploadProgress] = useState<number>(0)
 
   useEffect(() => {
     const draft = localStorage.getItem('postDraft')
@@ -91,7 +94,12 @@ const handleUploadImage = async (file: File): Promise<string | null> => {
 
     const response = await axios.post('/api/upload/image', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 30000
+      timeout: 30000,
+      onUploadProgress: (evt) => {
+        if (!evt.total) return
+        const percent = Math.round((evt.loaded * 100) / evt.total)
+        setUploadProgress(percent)
+      }
     })
 
     if (response.data.success) {
@@ -107,8 +115,22 @@ const handleUploadImage = async (file: File): Promise<string | null> => {
     return null
   } finally {
     setUploadLoading(false)
+    setTimeout(() => setUploadProgress(0), 500)
   }
 }
+  const handleAfterAddMedia = (url: string) => {
+    setMediaUrls(prev => [...prev, url])
+    setMediaAlts(prev => [...prev, ""])
+    setMediaCrops(prev => [...prev, "auto"])
+  }
+
+  const updateMediaAlt = (index: number, value: string) => {
+    setMediaAlts(prev => prev.map((v, i) => i === index ? value : v))
+  }
+
+  const updateMediaCrop = (index: number, value: "auto" | "square" | "wide") => {
+    setMediaCrops(prev => prev.map((v, i) => i === index ? value : v))
+  }
   const handlePublish = async () => {
     if (!content.trim() || selectedPlatforms.length === 0) {
       setResult({ success: false, message: 'Please add content and select platforms' })
@@ -127,6 +149,7 @@ const handleUploadImage = async (file: File): Promise<string | null> => {
         selectedPlatforms,
         content.trim(),
         mediaUrls,
+        mediaAlts,
         postType,
         scheduledFor
       )
@@ -276,6 +299,12 @@ const handleUploadImage = async (file: File): Promise<string | null> => {
           setMediaUrls={setMediaUrls}
           handleUploadImage={handleUploadImage}
           uploadLoading={uploadLoading}
+          uploadProgress={uploadProgress}
+          onAfterAddMedia={handleAfterAddMedia}
+          mediaAlts={mediaAlts}
+          mediaCrops={mediaCrops}
+          onUpdateMediaAlt={updateMediaAlt}
+          onUpdateMediaCrop={updateMediaCrop}
           aiLimits={aiLimits}
           userPlan={userPlan}
         />
@@ -287,6 +316,15 @@ const handleUploadImage = async (file: File): Promise<string | null> => {
           mediaUrls={mediaUrls}
           result={result}
           redirectCountdown={redirectCountdown}
+          uploadLoading={uploadLoading}
+          uploadProgress={uploadProgress}
+          mediaAlts={mediaAlts}
+          mediaCrops={mediaCrops}
+          onRetryEdit={() => {
+            setResult(null)
+            const el = document.querySelector('textarea') as HTMLTextAreaElement | null
+            if (el) el.focus()
+          }}
         />
       </div>
 

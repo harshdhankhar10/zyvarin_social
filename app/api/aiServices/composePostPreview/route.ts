@@ -55,7 +55,7 @@ GENERATION RULES:
 
 2. Platform-specific requirements:
    - LinkedIn (max 3000 chars): Professional, value-driven, industry insights
-   - Twitter (max 280 chars): Punchy, hashtag-friendly, thread-worthy
+   - Twitter (STRICT max 280 chars INCLUDING hashtags, emojis, and ALL text): Punchy, concise, impactful. Count EVERY character including spaces and hashtags. NEVER exceed 280 total characters.
    - Facebook (max 5000 chars): Conversational, community-focused, shareable
    - Instagram (max 2200 chars): Visual storytelling, hashtag-rich, inspirational
 
@@ -76,7 +76,8 @@ GENERATION RULES:
 4. Content transformation:
    - Preserve core message but adapt delivery
    - Add platform-appropriate elements (hashtags, @mentions, emojis)
-   - Adjust length to fit platform character limits
+   - CRITICAL FOR TWITTER: Ensure final character count is <= 280. Trim content, reduce hashtags, shorten wording as needed. Verify character count before outputting.
+   - Adjust length to fit platform character limits STRICTLY
    - Vary sentence structure and opening hooks
 
 5. Naming conventions for versions:

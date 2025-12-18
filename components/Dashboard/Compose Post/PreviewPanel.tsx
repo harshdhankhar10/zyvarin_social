@@ -1,8 +1,9 @@
 "use client"
 
-import React, { useState } from 'react'
-import { AlertCircle, Users, Check, Loader } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { AlertCircle, Users, Check, Loader, X } from 'lucide-react'
 import { getProviderIcon, getProviderColor, getProviderBgColor, getUsername, getProfileImage } from '@/utils/socialUtils'
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface PreviewPanelProps {
   connectedAccounts: Array<{ provider: string; profileData: any }>
@@ -11,6 +12,11 @@ interface PreviewPanelProps {
   mediaUrls: string[]
   result: { success?: boolean; message?: string } | null
   redirectCountdown: number | null
+  uploadLoading?: boolean
+  uploadProgress?: number
+  mediaAlts?: string[]
+  mediaCrops?: ("auto" | "square" | "wide")[]
+  onRetryEdit?: () => void
 }
 
 const PreviewPanel: React.FC<PreviewPanelProps> = ({
@@ -19,11 +25,26 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
   content,
   mediaUrls,
   result,
-  redirectCountdown
+  redirectCountdown,
+  uploadLoading = false,
+  uploadProgress = 0,
+  mediaAlts = [],
+  mediaCrops = [],
+  onRetryEdit
 }) => {
-  const [activeTab, setActiveTab] = useState<string>('twitter')
+  const [activeTab, setActiveTab] = useState<string>('')
   
   const previewAccounts = connectedAccounts.filter(acc => selectedPlatforms.includes(acc.provider))
+  
+  useEffect(() => {
+    if (previewAccounts.length > 0 && !activeTab) {
+      setActiveTab(previewAccounts[0].provider)
+    } else if (previewAccounts.length === 0) {
+      setActiveTab('')
+    } else if (!previewAccounts.find(acc => acc.provider === activeTab)) {
+      setActiveTab(previewAccounts[0].provider)
+    }
+  }, [selectedPlatforms, previewAccounts.length])
   
   const tabs = previewAccounts.map(account => ({
     id: account.provider,
@@ -34,7 +55,24 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
     icon: getProviderIcon(account.provider)
   }))
 
-  const activeAccount = previewAccounts.find(acc => acc.provider === activeTab)
+  const formatContent = (text: string) => {
+    if (!text) return null
+    
+    const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|#[A-Za-z0-9_]+)/g)
+    
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={index}>{part.slice(2, -2)}</strong>
+      }
+      if (part.startsWith('*') && part.endsWith('*')) {
+        return <em key={index}>{part.slice(1, -1)}</em>
+      }
+      if (part.startsWith('#') && part.length > 1) {
+        return <span key={index} className="text-blue-600">{part}</span>
+      }
+      return <span key={index}>{part}</span>
+    })
+  }
 
   if (tabs.length === 0) {
     return (
@@ -43,13 +81,52 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
           <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-6">Preview</h3>
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center">
             <Users className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-            <p className="text-base font-medium text-slate-700 mb-2">No platforms selected</p>
+            <p className="text-base font-medium text-slate-700 mb-2">No accounts selected</p>
             <p className="text-sm text-slate-500">Select platforms to see how your post will look</p>
           </div>
+
+          {result && (
+            <div className={`mt-5 p-4 rounded-lg border-2 ${
+              result.success 
+                ? 'bg-green-50 border-green-300 text-green-900' 
+                : 'bg-red-50 border-red-300 text-red-900'
+            }`}>
+              <div className="flex items-start gap-3">
+                {result.success ? (
+                  <div className="flex-shrink-0 p-1 bg-green-100 rounded-full">
+                    <Check className="w-5 h-5 text-green-600" />
+                  </div>
+                ) : (
+                  <div className="flex-shrink-0 p-1 bg-red-100 rounded-full">
+                    <X className="w-5 h-5 text-red-600" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <h4 className={`text-sm font-bold mb-1 ${
+                    result.success ? 'text-green-900' : 'text-red-900'
+                  }`}>
+                    {result.success ? '✓ Success' : '✗ Failed'}
+                  </h4>
+                  <p className="text-sm font-medium">{result.message}</p>
+                  {redirectCountdown !== null && result.success && (
+                    <div className="mt-3 pt-3 border-t border-green-200 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Loader className="w-4 h-4 animate-spin text-green-600" />
+                        <span className="text-xs font-medium">Redirecting to calendar...</span>
+                      </div>
+                      <span className="text-lg font-bold text-green-600">{redirectCountdown}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     )
   }
+
+  const activeAccount = previewAccounts.find(acc => acc.provider === activeTab)
 
   const Icon = getProviderIcon(activeTab)
   const colorClass = getProviderColor(activeTab)
@@ -117,10 +194,24 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
           </div>
           
           <div className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed mb-4">
-            {content}
+            {formatContent(content)}
           </div>
           
-          {mediaUrls.length > 0 && (
+          {uploadLoading && (
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <div className="grid grid-cols-1 gap-2">
+                <Skeleton className="w-full h-32 rounded" />
+              </div>
+              <div className="mt-2">
+                <div className="w-full h-2 bg-slate-100 rounded">
+                  <div className="h-2 bg-slate-600 rounded" style={{ width: `${uploadProgress}%` }} />
+                </div>
+                <p className="text-xs text-slate-500 text-center mt-2">Uploading {uploadProgress}%</p>
+              </div>
+            </div>
+          )}
+          
+          {!uploadLoading && mediaUrls.length > 0 && (
             <div className="mt-4 pt-4 border-t border-slate-100">
               <div className={`grid gap-2 ${
                 mediaUrls.length === 1 ? 'grid-cols-1' :
@@ -131,11 +222,13 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
                   <div key={index} className={`${
                     mediaUrls.length === 3 && index === 0 ? 'col-span-2' : ''
                   }`}>
-                    <img
-                      src={url}
-                      alt={`Media ${index + 1}`}
-                      className="w-full h-32 object-cover rounded border border-slate-200"
-                    />
+                    <div className={`${mediaCrops[index] === 'square' ? 'aspect-square' : mediaCrops[index] === 'wide' ? 'aspect-video' : ''} w-full overflow-hidden rounded border border-slate-200 bg-slate-50`}>
+                      <img
+                        src={url}
+                        alt={mediaAlts[index] || `Media ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                   </div>
                 ))}
                 {mediaUrls.length > 4 && (
@@ -158,17 +251,33 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
         </div>
 
         {result && (
-          <div className={`mt-5 p-4 rounded ${
-            result.success ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'
+          <div className={`mt-5 p-4 rounded-lg border-2 ${
+            result.success 
+              ? 'bg-green-50 border-green-300 text-green-900' 
+              : 'bg-red-50 border-red-300 text-red-900'
           }`}>
-            <div className="flex items-start">
+            <div className="flex items-start gap-3">
               {result.success ? (
-                <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                <div className="flex-shrink-0 p-1 bg-green-100 rounded-full">
+                  <Check className="w-5 h-5 text-green-600" />
+                </div>
               ) : (
-                <AlertCircle className="w-4 h-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+                <div className="flex-shrink-0 p-1 bg-red-100 rounded-full">
+                  <X className="w-5 h-5 text-red-600" />
+                </div>
               )}
               <div className="flex-1">
-                <div className="text-sm font-medium">{result.message}</div>
+                <h4 className={`text-sm font-bold mb-1 ${
+                  result.success ? 'text-green-900' : 'text-red-900'
+                }`}>
+                  {result.success ? '✓ Success' : '✗ Failed'}
+                </h4>
+                <p className="text-sm font-medium">{result.message}</p>
+                {!result.success && onRetryEdit && (
+                  <div className="mt-3">
+                    <button onClick={onRetryEdit} className="text-xs px-3 py-1 rounded bg-slate-900 text-white">Edit and retry</button>
+                  </div>
+                )}
                 {redirectCountdown !== null && result.success && (
                   <div className="mt-3 pt-3 border-t border-green-200 flex items-center justify-between">
                     <div className="flex items-center gap-2">

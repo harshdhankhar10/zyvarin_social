@@ -7,6 +7,7 @@ import {
   AlertCircle, Info,
   Code, ExternalLink
 } from 'lucide-react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import axios from 'axios'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -421,10 +422,7 @@ const ConnectAccounts = ({
                   </div>
                 )}
 
-
-                <div className="flex items-center justify-between">
-                  {getConnectionButton(platform)}
-                </div>
+                {getConnectionButton(platform)}
                 
                 {!limits.platforms.canConnectMore && !connected && platform.isAvailable && (
                   <p className="mt-2 text-xs text-red-500 text-center">

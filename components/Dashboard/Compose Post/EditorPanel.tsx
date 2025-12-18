@@ -3,7 +3,7 @@
 import React, { useRef, useState } from 'react'
 import {
   ImageIcon, Calendar, Wand2, ChevronDown,
-  Clock, Loader2, Check, X, Upload
+  Clock, Loader2, Check, X, Upload, Bold, Italic
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -33,6 +33,12 @@ interface EditorPanelProps {
   setMediaUrls: (urls: string[]) => void
   handleUploadImage: (file: File) => Promise<string | null>
   uploadLoading: boolean
+  uploadProgress?: number
+  onAfterAddMedia?: (url: string) => void
+  mediaAlts?: string[]
+  mediaCrops?: ("auto" | "square" | "wide")[]
+  onUpdateMediaAlt?: (index: number, value: string) => void
+  onUpdateMediaCrop?: (index: number, value: "auto" | "square" | "wide") => void
   aiLimits: {
     canUse: boolean;
     remaining: number;
@@ -62,15 +68,43 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
   setMediaUrls,
   handleUploadImage,
   uploadLoading,
+  uploadProgress = 0,
+  onAfterAddMedia,
+  mediaAlts = [],
+  mediaCrops = [],
+  onUpdateMediaAlt,
+  onUpdateMediaCrop,
   aiLimits,
   userPlan  
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [imageUpload, setImageUpload] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string>('')
   const [showScheduleMenu, setShowScheduleMenu] = useState(false)
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState('')
+
+  const applyFormatting = (format: 'bold' | 'italic') => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const selectedText = content.substring(start, end)
+
+    if (selectedText) {
+      const wrapper = format === 'bold' ? '**' : '*'
+      const newText = content.substring(0, start) + wrapper + selectedText + wrapper + content.substring(end)
+      setContent(newText)
+      
+      setTimeout(() => {
+        textarea.focus()
+        const newCursorPos = start + wrapper.length
+        textarea.setSelectionRange(newCursorPos, newCursorPos + selectedText.length)
+      }, 0)
+    }
+  }
 
   const toggleEnhanceOption = (option: string) => {
     if (selectedEnhanceOptions.includes(option)) {
@@ -106,7 +140,11 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
 
       const imageUrl = await handleUploadImage(file)
       if (imageUrl) {
-        setMediaUrls([...mediaUrls, imageUrl])
+        if (onAfterAddMedia) {
+          onAfterAddMedia(imageUrl)
+        } else {
+          setMediaUrls([...mediaUrls, imageUrl])
+        }
         setImageUpload(null)
         setImagePreview('')
         if (fileInputRef.current) {
@@ -334,22 +372,70 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
       )}
 
       <div className="flex-1 p-6 relative">
+        <div className="mb-3 flex items-center gap-2 border-b border-slate-200 pb-3">
+          <button
+            onClick={() => applyFormatting('bold')}
+            className="p-2 rounded hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors"
+            title="Bold (Ctrl+B)"
+            type="button"
+          >
+            <Bold className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => applyFormatting('italic')}
+            className="p-2 rounded hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors"
+            title="Italic (Ctrl+I)"
+            type="button"
+          >
+            <Italic className="w-4 h-4" />
+          </button>
+          <div className="h-5 w-px bg-slate-200 mx-1"></div>
+          <span className="text-xs text-slate-500">
+            Use <code className="px-1 py-0.5 bg-slate-100 rounded text-xs">**text**</code> for bold, <code className="px-1 py-0.5 bg-slate-100 rounded text-xs">*text*</code> for italic
+          </span>
+        </div>
+        
         <textarea
+          ref={textareaRef}
           className="w-full h-full pb-32 resize-none outline-none text-base text-slate-900 placeholder:text-slate-400 font-normal leading-relaxed min-h-[300px]"
           placeholder="What would you like to share today?"
           value={content}
           onChange={(e) => setContent(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.ctrlKey || e.metaKey) {
+              if (e.key === 'b') {
+                e.preventDefault()
+                applyFormatting('bold')
+              } else if (e.key === 'i') {
+                e.preventDefault()
+                applyFormatting('italic')
+              }
+            }
+          }}
         />
         
         {mediaUrls.length > 0 && (
           <div className="mb-4 pb-4 border-b border-slate-100">
             <div className="flex flex-wrap gap-3">
               {mediaUrls.map((url, index) => (
-                <div key={index} className="relative group">
-                  <img 
-                    src={url} 
-                    alt={`Upload ${index + 1}`}
-                    className="w-20 h-20 object-cover rounded-lg border border-slate-200"
+                <div key={index} className="relative group w-24">
+                  <div className={`${mediaCrops[index] === 'square' ? 'aspect-square' : mediaCrops[index] === 'wide' ? 'aspect-video' : ''} w-24 overflow-hidden rounded-lg border border-slate-200 bg-slate-50`}> 
+                    <img 
+                      src={url} 
+                      alt={mediaAlts[index] || `Upload ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="mt-1 flex items-center gap-1">
+                    <button onClick={() => onUpdateMediaCrop && onUpdateMediaCrop(index, 'auto')} className={`px-1.5 py-0.5 rounded text-[10px] ${mediaCrops[index] === 'auto' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600'}`}>Auto</button>
+                    <button onClick={() => onUpdateMediaCrop && onUpdateMediaCrop(index, 'square')} className={`px-1.5 py-0.5 rounded text-[10px] ${mediaCrops[index] === 'square' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600'}`}>1:1</button>
+                    <button onClick={() => onUpdateMediaCrop && onUpdateMediaCrop(index, 'wide')} className={`px-1.5 py-0.5 rounded text-[10px] ${mediaCrops[index] === 'wide' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600'}`}>16:9</button>
+                  </div>
+                  <input
+                    value={mediaAlts[index] || ''}
+                    onChange={(e) => onUpdateMediaAlt && onUpdateMediaAlt(index, e.target.value)}
+                    placeholder="Alt text"
+                    className="mt-1 w-24 px-2 py-1 border border-slate-200 rounded text-[11px]"
                   />
                   <button
                     onClick={() => removeImage(index)}
@@ -388,7 +474,7 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
                 <ImageIcon className="w-4 h-4" />
               )}
               <span className="text-xs hidden sm:inline">
-                {uploadLoading ? 'Uploading...' : 'Add Image'}
+                {uploadLoading ? `Uploading ${uploadProgress > 0 ? uploadProgress + '%' : '...'}` : 'Add Image'}
               </span>
             </button>
            {userPlan !== 'FREE' && (
@@ -515,18 +601,22 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
              </div>
            )}
           </div>
-          <div className="flex items-center gap-3">
-            <span className={`text-xs ${content.length > 3000 ? 'text-red-600' : 'text-slate-500'}`}>
-              {content.length}/3000
-            </span>
-            <span className={`text-xs ${content.length > 280 ? 'text-red-600' : 'text-slate-500'}`}>
-              Twitter: {content.length}/280
-            </span>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {selectedPlatforms.includes('twitter') && (
+              <span className={`text-xs px-2 py-1 rounded ${content.length > 280 ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'}`}>
+                Twitter {content.length}/280
+              </span>
+            )}
+            {selectedPlatforms.includes('linkedin') && (
+              <span className={`text-xs px-2 py-1 rounded ${content.length > 3000 ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'}`}>
+                LinkedIn {content.length}/3000
+              </span>
+            )}
           </div>
         </div>
-      </div>
-    </div>
-  )
-}
+       </div>
+     </div>
+   )
+ }
 
 export default EditorPanel

@@ -4,6 +4,7 @@ interface PublishPostParams {
   platform: string;
   content: string;
   mediaUrls?: string[];
+  mediaAlts?: string[];
   postType?: 'immediate' | 'scheduled';
   scheduledFor?: string | null;
 }
@@ -16,15 +17,36 @@ interface PublishResult {
 }
 
 export async function publishPost(params: PublishPostParams): Promise<PublishResult> {
-  const { platform, content, mediaUrls = [], postType = 'immediate', scheduledFor = null } = params;
+  const { platform, content, mediaUrls = [], mediaAlts = [], postType = 'immediate', scheduledFor = null } = params;
   
+  const stripMarkdownBasic = (text: string): string => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1');
+  };
+
+  const formatContentForPlatform = (plat: string, text: string): string => {
+    const cleaned = plat === 'devto' ? text : stripMarkdownBasic(text);
+    if (plat === 'twitter') {
+      const trimmed = cleaned.trim();
+      return trimmed.length > 280 ? trimmed.slice(0, 280) : trimmed;
+    }
+    if (plat === 'linkedin') {
+      return cleaned.trim();
+    }
+    return cleaned.trim();
+  };
+
+  const formattedContent = formatContentForPlatform(platform, content);
+
   let platformName = platform;
   if (platform === 'devto') platformName = 'dev_to';
 
   try {
     const response = await axios.post(`/api/social/${platformName}/post`, {
-      content: content.trim(),
+      content: formattedContent,
       mediaUrls,
+      mediaAlts,
       postType,
       scheduledFor
     });
@@ -64,6 +86,7 @@ export async function publishToMultiplePlatforms(
   platforms: string[],
   content: string,
   mediaUrls: string[] = [],
+  mediaAlts: string[] = [],
   postType: 'immediate' | 'scheduled' = 'immediate',
   scheduledFor: string | null = null
 ): Promise<{
@@ -79,6 +102,7 @@ export async function publishToMultiplePlatforms(
       platform,
       content,
       mediaUrls,
+      mediaAlts,
       postType,
       scheduledFor
     });

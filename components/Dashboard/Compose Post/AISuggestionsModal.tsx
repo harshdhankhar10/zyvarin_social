@@ -241,6 +241,18 @@ const AISuggestionsModal: React.FC<AISuggestionsModalProps> = ({
                             }`}>
                               {version.content || 'No content generated'}
                             </div>
+                            
+                            {platform.provider === 'twitter' && (
+                              <div className={`mt-2 text-xs font-medium ${
+                                version.content?.length > 280 
+                                  ? 'text-red-600' 
+                                  : 'text-green-600'
+                              }`}>
+                                {version.content?.length || 0}/280 characters
+                                {version.content?.length > 280 && ' - Exceeds limit!'}
+                              </div>
+                            )}
+                            
                             {(version.content?.length > 150) && (
                               <button
                                 onClick={(e) => {

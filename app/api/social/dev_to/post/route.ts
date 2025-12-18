@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { content, mediaUrls = [], published = true, tags = [], postType = 'immediate', scheduledFor = null, postId = null, fromCron = false } = await request.json()
+    const { content, mediaUrls = [], mediaAlts = [], published = true, tags = [], postType = 'immediate', scheduledFor = null, postId = null, fromCron = false } = await request.json()
 
     if (!content?.trim()) {
       return NextResponse.json({ error: "Content is required" }, { status: 400 })
@@ -146,9 +146,10 @@ export async function POST(request: NextRequest) {
     if (mediaUrls.length > 0) {
       let imageMarkdown = "\n\n"
       
-      for (const mediaUrl of mediaUrls) {
-        // Add each image as markdown image syntax
-        imageMarkdown += `![Image](${mediaUrl})\n\n`
+      for (let i = 0; i < mediaUrls.length; i++) {
+        const mediaUrl = mediaUrls[i]
+        const alt = mediaAlts[i] || 'Image'
+        imageMarkdown += `![${alt}](${mediaUrl})\n\n`
       }
       
       processedContent = content + imageMarkdown
