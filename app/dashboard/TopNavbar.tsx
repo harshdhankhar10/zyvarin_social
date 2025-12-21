@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { HelpCircle, Bell, ChevronDown, User, Settings, CreditCard, Receipt, Shield, LogOut } from 'lucide-react';
+import { HelpCircle, Bell, ChevronDown, User, Settings, CreditCard, Receipt, Shield, LogOut, Bug } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
@@ -180,6 +180,12 @@ const TopNavbar: React.FC<{ user: User }> = ({ user }) => {
               <Link href="/dashboard/help" className="flex items-center gap-2 cursor-pointer">
                 <HelpCircle className="w-4 h-4" />
                 <span>Help & Support</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/report-bug" className="flex items-center gap-2 cursor-pointer">
+                <Bug className="w-4 h-4" />
+                <span>Report a Bug</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

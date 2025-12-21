@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { content, mediaUrls = [], mediaAlts = [], published = true, tags = [], postType = 'immediate', scheduledFor = null, postId = null, fromCron = false } = await request.json()
+    const { content, mediaUrls = [], mediaAlts = [], published = true, tags = [], postType = 'immediate', scheduledFor = null, postId = null, fromCron = false, aiEnhancements = [], aiToolUsed = false } = await request.json()
 
     if (!content?.trim()) {
       return NextResponse.json({ error: "Content is required" }, { status: 400 })

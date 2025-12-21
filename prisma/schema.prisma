@@ -51,6 +51,7 @@ model User {
   blogComments      BlogComment[]
   blogUpvotes       BlogUpvote[]
   blogDownvotes     BlogDownvote[]
+  bugReports        BugReport[]
 }
 
 model SocialProvider {
@@ -341,5 +342,27 @@ model BlogDownvote {
   @@unique([blogId, userId])
   @@index([blogId])
   @@index([userId])
+}
+
+model BugReport {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String   @db.Text
+  category    String
+  severity    String   @default("MEDIUM")
+  screenshot  String?
+  page        String?
+  status      String   @default("OPEN")
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([severity])
+  @@index([createdAt])
 }
 

@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       return rateLimitResponse(limit, remaining, reset);
     }
 
-    const { content, mediaUrls = [], postType = 'immediate', scheduledFor = null, postId = null, fromCron = false } = await request.json()
+    const { content, mediaUrls = [], postType = 'immediate', scheduledFor = null, postId = null, fromCron = false, aiEnhancements = [], aiToolUsed = false } = await request.json()
 
     if (!content?.trim()) {
       return NextResponse.json({ error: "Content is required" }, { status: 400 })

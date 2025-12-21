@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BarChart3, Users, LogOut, FileText, Settings, TrendingUp, Bell } from 'lucide-react'
+import { BarChart3, Users, LogOut, FileText, Settings, TrendingUp, Bell, Bug } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
 const AdminSidebar = () => {
@@ -15,6 +15,7 @@ const AdminSidebar = () => {
     { href: '/admin/analytics', label: 'Analytics', icon: TrendingUp },
     { href: '/admin/blog', label: 'Blog', icon: FileText },
     { href: '/admin/notifications', label: 'Notifications', icon: Bell },
+    { href: '/admin/bug-reports', label: 'Bug Reports', icon: Bug },
     { href: '/admin/settings', label: 'Settings', icon: Settings },
   ]
 
