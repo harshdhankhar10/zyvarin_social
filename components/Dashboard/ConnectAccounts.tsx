@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import axios from 'axios'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import Image from 'next/image'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Dialog,
   DialogContent,
@@ -70,12 +71,55 @@ const ConnectAccounts = ({
   const [showDevToModal, setShowDevToModal] = useState(false)
   const [devToApiKey, setDevToApiKey] = useState('')
   const [devToLoading, setDevToLoading] = useState(false)
+  const [banner, setBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     if (limits.platforms.hasReachedLimit && !showLimitWarning) {
       setShowLimitWarning(true)
     }
   }, [limits.platforms.hasReachedLimit, showLimitWarning])
+
+  useEffect(() => {
+    const err = searchParams.get('error')
+    const suc = searchParams.get('success')
+    if (err || suc) {
+      const mapError = (code: string) => {
+        switch (code) {
+          case 'account_in_use':
+            return 'This social account is already connected to another Zyvarin user.'
+          case 'quota_exhausted':
+            return 'This account has already used all free posting limits with another Zyvarin account. Please use a different account.'
+          case 'platform_limit_reached':
+            return 'You have reached your plan limit for connected platforms.'
+          case 'missing_params':
+            return 'Missing OAuth parameters. Please retry connecting.'
+          case 'invalid_state':
+            return 'Session expired or invalid state. Please retry connecting.'
+          case 'connection_failed':
+            return 'LinkedIn connection failed. Please try again.'
+          case 'twitter_connection_failed':
+            return 'Twitter connection failed. Please try again.'
+          default:
+            return 'Action failed. Please try again.'
+        }
+      }
+      const mapSuccess = (code: string) => {
+        switch (code) {
+          case 'linkedin_connected':
+            return 'LinkedIn connected successfully.'
+          case 'x_connected':
+            return 'Twitter connected successfully.'
+          default:
+            return 'Action completed successfully.'
+        }
+      }
+      if (err) setBanner({ type: 'error', message: mapError(err) })
+      if (suc) setBanner({ type: 'success', message: mapSuccess(suc) })
+      router.replace('/dashboard/connect-accounts')
+    }
+  }, [searchParams, router])
 
   const platforms = [
     {
@@ -163,11 +207,12 @@ const ConnectAccounts = ({
         setConnectedPlatforms(prev => [...prev, devToProfile])
         setShowDevToModal(false)
         setDevToApiKey('')
+        setBanner({ type: 'success', message: 'Dev.to connected successfully.' })
       } else {
-        setError(response.data.message || 'Failed to connect Dev.to')
+        setBanner({ type: 'error', message: response.data.message || 'Failed to connect Dev.to' })
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to connect Dev.to. Please check your API key.')
+      setBanner({ type: 'error', message: err.response?.data?.message || 'Failed to connect Dev.to. Please check your API key.' })
     } finally {
       setDevToLoading(false)
     }
@@ -204,15 +249,17 @@ const ConnectAccounts = ({
     setError(null)
     
     try {
-      const response = await axios.post(`/api/social/${platformId}/disconnect`)
+      const routeId = platformId === 'devto' ? 'dev_to' : platformId
+      const response = await axios.post(`/api/social/${routeId}/disconnect`)
       
       if (response.data.success) {
         setConnectedPlatforms(prev => prev.filter(p => p.id !== platformId))
+        setBanner({ type: 'success', message: response.data.message || 'Disconnected successfully.' })
       } else {
-        setError(`Failed to disconnect ${platformId}`)
+        setBanner({ type: 'error', message: response.data.error || `Failed to disconnect ${platformId}` })
       }
     } catch (err) {
-      setError(`Failed to disconnect ${platformId}`)
+      setBanner({ type: 'error', message: `Failed to disconnect ${platformId}` })
     } finally {
       setLoadingPlatform(null)
     }
@@ -290,6 +337,12 @@ const ConnectAccounts = ({
         {error && (
           <div className="mb-6 p-3 bg-red-50 text-red-700 rounded-lg border border-red-200">
             {error}
+          </div>
+        )}
+
+        {banner && (
+          <div className={`mb-6 p-3 rounded-lg border ${banner.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+            {banner.message}
           </div>
         )}
 

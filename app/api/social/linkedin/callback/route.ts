@@ -118,6 +118,23 @@ export async function GET(request: NextRequest) {
       family_name: profileData.family_name,
     }
 
+    const existing = await prisma.socialProvider.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider: 'linkedin',
+          providerAccountId: profileData.sub,
+        },
+      },
+    })
+
+    if (existing && existing.userId !== userId && existing.isConnected) {
+      return NextResponse.redirect(`${baseUrl}/dashboard/connect-accounts?error=account_in_use`)
+    }
+
+    if (existing && existing.quotaExhausted) {
+      return NextResponse.redirect(`${baseUrl}/dashboard/connect-accounts?error=quota_exhausted`)
+    }
+
     await prisma.socialProvider.upsert({
       where: {
         provider_providerAccountId: {
@@ -126,6 +143,7 @@ export async function GET(request: NextRequest) {
         },
       },
       update: {
+        userId: userId,
         providerUserId: profileData.sub,
         access_token: access_token,
         expires_at: Math.floor(Date.now() / 1000) + expires_in,

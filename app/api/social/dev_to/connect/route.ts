@@ -82,6 +82,29 @@ export async function POST(request: Request) {
         profile_image: userData.profile_image,
       }
 
+      const existing = await prisma.socialProvider.findUnique({
+        where: {
+          provider_providerAccountId: {
+            provider: 'devto',
+            providerAccountId: userData.id.toString(),
+          },
+        },
+      })
+
+      if (existing && existing.userId !== session.id && existing.isConnected) {
+        return NextResponse.json({
+          success: false,
+          message: "This Dev.to account is already connected to another user."
+        }, { status: 409 })
+      }
+
+      if (existing && existing.quotaExhausted) {
+        return NextResponse.json({
+          success: false,
+          message: "This Dev.to account has already used all free limits with another Zyvarin account. Please use a different account."
+        }, { status: 403 })
+      }
+
       await prisma.socialProvider.upsert({
         where: {
           provider_providerAccountId: {
@@ -90,6 +113,7 @@ export async function POST(request: Request) {
           },
         },
         update: {
+          userId: session.id,
           providerUserId: userData.id.toString(),
           access_token: apiKey.trim(), 
           isConnected: true,
@@ -145,6 +169,29 @@ export async function POST(request: Request) {
       profile_image: userData.profile_image,
     }
 
+    const existing = await prisma.socialProvider.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider: 'devto',
+          providerAccountId: userData.id.toString(),
+        },
+      },
+    })
+
+    if (existing && existing.userId !== session.id && existing.isConnected) {
+      return NextResponse.json({
+        success: false,
+        message: "This Dev.to account is already connected to another user."
+      }, { status: 409 })
+    }
+
+    if (existing && existing.quotaExhausted) {
+      return NextResponse.json({
+        success: false,
+        message: "This Dev.to account has already used all free limits with another Zyvarin account. Please use a different account."
+      }, { status: 403 })
+    }
+
     await prisma.socialProvider.upsert({
       where: {
         provider_providerAccountId: {
@@ -153,6 +200,7 @@ export async function POST(request: Request) {
         },
       },
       update: {
+        userId: session.id,
         providerUserId: userData.id.toString(),
         access_token: apiKey.trim(), 
         isConnected: true,

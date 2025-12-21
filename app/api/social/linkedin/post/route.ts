@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma"
 import { canPublishPost } from "@/app/dashboard/pricingUtils"
 import { rateLimiters, getIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 import { checkAndNotifyQuota } from "@/utils/quotaNotifications"
+import { incrementPostCount, checkRateLimit as checkPostRateLimit, getQuotaWarning } from "@/lib/quotaTracker"
 
 async function uploadImageToLinkedin(
   imageUrl: string, 
@@ -165,6 +166,11 @@ export async function POST(request: NextRequest) {
 
     if (!linkedinProvider?.access_token) {
       return NextResponse.json({ error: "LinkedIn not connected" }, { status: 400 })
+    }
+
+    const rateCheck = await checkPostRateLimit(linkedinProvider.id)
+    if (!rateCheck.allowed) {
+      return NextResponse.json({ error: rateCheck.message }, { status: 429 })
     }
 
     const isScheduled = postType === 'scheduled'
@@ -337,16 +343,27 @@ export async function POST(request: NextRequest) {
       data: { lastUsedAt: new Date() }
     })
 
+    if (!isScheduled) {
+      await incrementPostCount(linkedinProvider.id, session.id)
+    }
+
     if (!isScheduled && !fromCron) {
       checkAndNotifyQuota(session.id, 'posts').catch(err => console.error('Quota notification failed:', err));
     }
+
+    const warning = await getQuotaWarning(linkedinProvider.id)
 
     return NextResponse.json({
       success: true,
       postId: post.id,
       linkedinPostId: linkedinPostIdResult,
       mediaCount: mediaUrls.length,
-      message: `Posted to LinkedIn successfully! ${mediaUrls.length > 0 ? `With ${mediaUrls.length} image(s)` : ''}`
+      message: `Posted to LinkedIn successfully! ${mediaUrls.length > 0 ? `With ${mediaUrls.length} image(s)` : ''}`,
+      quota: warning.warning ? {
+        level: warning.level,
+        message: warning.message,
+        remaining: warning.remaining,
+      } : undefined
     })
 
   } catch (error: any) {

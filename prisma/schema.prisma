@@ -56,9 +56,9 @@ model User {
 model SocialProvider {
   id                String  @id @default(cuid())
   userId            String
-  provider          String // 'linkedin', 'twitter', 'facebook'
+  provider          String
   providerAccountId String
-  providerUserId    String? // Platform's user ID (like linkedinId)
+  providerUserId    String?
 
   access_token  String?
   refresh_token String?
@@ -70,6 +70,11 @@ model SocialProvider {
   credentials Json?
 
   isConnected     Boolean   @default(false)
+  quotaExhausted  Boolean   @default(false)
+  quotaExhaustedAt DateTime?
+
+  totalPostsPublished Int @default(0)
+
   connectedAt     DateTime  @default(now())
   lastUsedAt      DateTime?
   disconnectedAt  DateTime?
@@ -85,6 +90,7 @@ model SocialProvider {
   @@unique([provider, userId])
   @@index([userId])
   @@index([provider])
+  @@index([quotaExhausted])
 }
 
 enum PostStatus {

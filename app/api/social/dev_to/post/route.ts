@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma"
 import { canPublishPost } from "@/app/dashboard/pricingUtils"
 import { rateLimiters, getIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 import { checkAndNotifyQuota } from "@/utils/quotaNotifications"
+import { incrementPostCount, checkRateLimit as checkPostRateLimit, getQuotaWarning } from "@/lib/quotaTracker"
 
 export async function POST(request: NextRequest) {
   try {
@@ -100,6 +101,11 @@ export async function POST(request: NextRequest) {
 
     if (!devtoProvider?.access_token) {
       return NextResponse.json({ error: "Dev.to not connected" }, { status: 400 })
+    }
+
+    const rateCheck = await checkPostRateLimit(devtoProvider.id)
+    if (!rateCheck.allowed) {
+      return NextResponse.json({ error: rateCheck.message }, { status: 429 })
     }
 
     const isScheduled = postType === 'scheduled'
@@ -228,8 +234,18 @@ export async function POST(request: NextRequest) {
     })
 
     if (!isScheduled) {
+      await incrementPostCount(devtoProvider.id, session.id)
+    }
+
+    if (!isScheduled) {
+      await incrementPostCount(devtoProvider.id, session.id)
+    }
+
+    if (!isScheduled) {
       checkAndNotifyQuota(session.id, 'posts').catch(err => console.error('Quota notification failed:', err));
     }
+
+    const warning = await getQuotaWarning(devtoProvider.id)
 
     return NextResponse.json({
       success: true,
@@ -242,7 +258,12 @@ export async function POST(request: NextRequest) {
         title: title,
         published: published,
         tags: tags
-      }
+      },
+      quota: warning.warning ? {
+        level: warning.level,
+        message: warning.message,
+        remaining: warning.remaining,
+      } : undefined
     })
 
   } catch (error: any) {

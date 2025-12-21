@@ -120,6 +120,23 @@ export async function GET(request: NextRequest) {
       profile_image_url: profileData.data.profile_image_url,
     }
 
+    const existing = await prisma.socialProvider.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider: 'twitter',
+          providerAccountId: profileData.data.id,
+        },
+      },
+    })
+
+    if (existing && existing.userId !== userId && existing.isConnected) {
+      return NextResponse.redirect(`${baseUrl}/dashboard/connect-accounts?error=account_in_use`)
+    }
+
+    if (existing && existing.quotaExhausted) {
+      return NextResponse.redirect(`${baseUrl}/dashboard/connect-accounts?error=quota_exhausted`)
+    }
+
     await prisma.socialProvider.upsert({
       where: {
         provider_providerAccountId: {
@@ -128,6 +145,7 @@ export async function GET(request: NextRequest) {
         },
       },
       update: {
+        userId: userId,
         providerUserId: profileData.data.id,
         access_token: access_token,
         refresh_token: refresh_token,
@@ -156,7 +174,7 @@ export async function GET(request: NextRequest) {
       },
     })
     const response = NextResponse.redirect(`${baseUrl}/dashboard/connect-accounts?success=x_connected`)
-    response.cookies.delete('x_code_verifier')
+    response.cookies.delete('twitter_code_verifier')
     
     return response
     

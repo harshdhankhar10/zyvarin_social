@@ -7,7 +7,7 @@ export async function POST() {
     const session = await currentLoggedInUserInfo()
     
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
     }
 
     await prisma.socialProvider.updateMany({
@@ -24,11 +24,12 @@ export async function POST() {
     })
 
     return NextResponse.json({
-        message: "Dev.to disconnected successfully",
+      success: true,
+      message: "Dev.to disconnected successfully",
     }, { status: 200 })
     
   } catch (error) {
     console.error('Dev.to disconnect error:', error)
-    return NextResponse.json({ error: "Disconnect failed" }, { status: 500 })
+    return NextResponse.json({ success: false, error: "Disconnect failed" }, { status: 500 })
   }
 }

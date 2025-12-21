@@ -116,6 +116,7 @@ const CalendarContent = ({ posts }: CalendarContentProps) => {
         <div className="grid grid-cols-7">
           {days.map((day, index) => {
             const dayPosts = day ? getPostsForDate(day) : [];
+            const dayPostedPosts = day ? getPostsForDate(day) : [];
             const isToday = day && day.toDateString() === new Date().toDateString();
 
             return (
@@ -132,7 +133,19 @@ const CalendarContent = ({ posts }: CalendarContentProps) => {
                       {isToday && <span className="ml-1 text-xs">(Today)</span>}
                     </div>
                     <div className="space-y-1">
-                      {dayPosts.slice(0, 3).map(post => (
+                      {dayPostedPosts.slice(0, 2).map(post => (
+                        <div
+                          key={post.id}
+                          className={`text-xs p-1.5 rounded border bg-green-50 border-green-300 cursor-pointer hover:shadow-sm transition-shadow`}
+                          title={post.content}
+                        >
+                          <div className="flex items-center gap-1">
+                            {getPlatformIcon(post.platform)}
+                            <span className="font-medium text-green-700">Posted</span>
+                          </div>
+                        </div>
+                      ))}
+                      {dayPosts.slice(0, 2).map(post => (
                         <div
                           key={post.id}
                           className={`text-xs p-1.5 rounded border ${getPlatformColor(post.platform)} cursor-pointer hover:shadow-sm transition-shadow`}

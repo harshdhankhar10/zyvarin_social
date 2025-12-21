@@ -6,9 +6,9 @@ import { getServerSession } from "next-auth/next"
 export async function POST() {
     const session = await getServerSession(NEXT_AUTH);
     if (!session?.user) {
-        return NextResponse.json(
-            { error: "Unauthorized" }, { status: 401 }
-        );
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" }, { status: 401 }
+    );
     }
     const user = await prisma.user.findUnique({
         where: { email: session.user.email! },
@@ -32,11 +32,12 @@ export async function POST() {
     })
 
     return NextResponse.json({
-        message: "LinkedIn disconnected successfully"
+      success: true,
+      message: "LinkedIn disconnected successfully"
     }, { status: 200 })
     
   } catch (error) {
     console.error('LinkedIn disconnect error:', error)
-    return NextResponse.json({ error: "Disconnect failed" }, { status: 500 })
+    return NextResponse.json({ success: false, error: "Disconnect failed" }, { status: 500 })
   }
 }

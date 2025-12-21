@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma"
 import { canPublishPost } from "@/app/dashboard/pricingUtils"
 import { rateLimiters, getIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 import { checkAndNotifyQuota } from "@/utils/quotaNotifications"
+import { incrementPostCount, checkRateLimit as checkPostRateLimit, getQuotaWarning } from "@/lib/quotaTracker"
 
 export async function POST(request: NextRequest) {
   try {
@@ -98,6 +99,11 @@ export async function POST(request: NextRequest) {
 
     if (!twitterProvider?.access_token) {
       return NextResponse.json({ error: "Twitter not connected" }, { status: 400 })
+    }
+
+    const rateCheck = await checkPostRateLimit(twitterProvider.id)
+    if (!rateCheck.allowed) {
+      return NextResponse.json({ error: rateCheck.message }, { status: 429 })
     }
 
     const isScheduled = postType === 'scheduled'
@@ -258,15 +264,26 @@ export async function POST(request: NextRequest) {
       data: { lastUsedAt: new Date() }
     })
 
+    if (!isScheduled) {
+      await incrementPostCount(updatedProvider.id, session.id)
+    }
+
     if (!isScheduled && !fromCron) {
       checkAndNotifyQuota(session.id, 'posts').catch(err => console.error('Quota notification failed:', err));
     }
+
+    const warning = await getQuotaWarning(updatedProvider.id)
 
     return NextResponse.json({ 
       success: true, 
       postId: post.id,
       tweetId,
-      message: `Posted to Twitter successfully!` 
+      message: `Posted to Twitter successfully!`,
+      quota: warning.warning ? {
+        level: warning.level,
+        message: warning.message,
+        remaining: warning.remaining,
+      } : undefined
     })
     
   } catch (error: any) {
