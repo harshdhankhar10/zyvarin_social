@@ -1,0 +1,40 @@
+
+[33m23fdbef[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m fix: skip rate limiting for scheduled posts to prevent 429 errors
+[33mcc6dbb3[m fix: skip rate limiting for scheduled posts to prevent 429 errors
+[33mb2119aa[m fix: skip rate limiting for scheduled posts to prevent 429 errors
+[33mba41f8e[m fix: skip rate limiting for scheduled posts to prevent 429 errors
+[33m5be0aa5[m Add bug reporting system with admin dashboard, user notifications, and screenshot uploads
+[33mdd6ba58[m feat: add quota tracking system with spam prevention, rate limiting, and account health monitoring
+[33m63a17ae[m feat: compose post enhancements - rich text editor, platform-specific formatting, upload progress, character limits, preview improvements, and retry functionality
+[33m304ee87[m feat: Blog
+[33mc57ccae[m Enhanced UI
+[33m3598c45[m Enhnaced UI
+[33m3d1bb04[m Enhanced UI
+[33mb8c7da5[m feat:analytics for visitor tracking
+[33mca2fc5d[m feat: build admin panel (users, analytics, notifications) with blog CRUD, voting, comments, and public blog pages
+[33m199de04[m feat: build admin panel (users, analytics, notifications) with blog CRUD, voting, comments, and public blog pages
+[33mbaaf9dc[m feat: add post management with edit, bulk delete, reschedule operations and quota notifications
+[33m23f0ef8[m feat: implement rate limiting across high and medium priority endpoints using Upstash Redis
+[33mcb58854[m Add plan downgrade UI, fix billing button logic, secure auth validation, and protect API routes with quota checks
+[33mfa89a38[m Fix billing pricing flow and generate branded invoice PDFs locally
+[33m51a8ad0[m feat: add pricing page with SEO layout and clean public nav/footer links
+[33m15aad2e[m chore: robots.txt, sitemap.xml
+[33m73b9337[m chore: remove GitHub auth and restyle social buttons on auth pages
+[33mc482253[m git commit -m feat: Add comprehensive public pages (about, blog, help, contact, use-cases, compare) and complete legal compliance documentation
+[33mb8edb65[m feat: Add comprehensive daily cron job with post publishing, transaction, and invoice handling
+[33mec0ed79[m fix: Resolve Prisma PostStatus enum type conversion error in dashboard query
+[33m7b96da9[m feat: Implement post scheduling with calendar, cron automation, and user notifications
+[33m1563244[m feat: Add settings pages, notifications, search, and transaction history
+[33m7589c00[m feat: settings - profile management, integrations, security
+[33m3fd0d59[m feat: Image uploading support on social platforms
+[33m33d26e9[m feat: Dev.to integration, payment gateway, billing system
+[33m6037d39[m feat: Dev.to integration, payment gateway, billing system
+[33m4ac20f4[m feat: added linkedin integration with fully functionallity
+[33m961b3fb[m feat: added linkedin integration with fully functionallity
+[33m97029f7[m feat: added linkedin integration with fully functionallity
+[33mbf2400d[m Auth Done
+[33m137a02b[m Auth Done
+[33m16ef7df[m Auth Done
+[33m9f9b3a7[m Enhanced UI
+[33m9ac0299[m Homepage Template Done
+[33m9a04863[m Initial commit from Create Next App
