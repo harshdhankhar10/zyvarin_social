@@ -31,6 +31,10 @@ export async function publishPost(params: PublishPostParams): Promise<PublishRes
       const trimmed = cleaned.trim();
       return trimmed.length > 280 ? trimmed.slice(0, 280) : trimmed;
     }
+    if (plat === 'pinterest') {
+      const trimmed = cleaned.trim();
+      return trimmed.length > 500 ? trimmed.slice(0, 500) : trimmed;
+    }
     if (plat === 'linkedin') {
       return cleaned.trim();
     }

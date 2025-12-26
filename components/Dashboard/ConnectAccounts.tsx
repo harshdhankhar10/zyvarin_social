@@ -1,12 +1,13 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { 
-  Linkedin, Twitter, Instagram, Facebook, 
+import {
+  Linkedin, Twitter, Instagram, Facebook,
   Github, Search, Plus, CheckCircle2, Loader2,
   AlertCircle, Info,
   Code, ExternalLink
 } from 'lucide-react'
+import PinterestIcon from '@/components/Icons/PinterestIcon'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import axios from 'axios'
@@ -21,16 +22,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from '@/components/ui/input'
-
 interface PlatformLimit {
   canConnectMore: boolean;
-  remaining: number;
-  connectedCount: number;
-  maxAllowed: number;
-  hasReachedLimit: boolean;
-  used: number;
   total: number;
   percentage: number;
+  hasReachedLimit: boolean;
+  maxAllowed: number;
+  connectedCount: number;
+  remaining: number;
 }
 
 interface AILimit {
@@ -52,12 +51,12 @@ interface ConnectedPlatform {
 }
 
 
-const ConnectAccounts = ({ 
+const ConnectAccounts = ({
   connectedPlatforms: initialConnectedPlatforms,
   linkedinProfile,
   twitterProfile,
   limits
-}: { 
+}: {
   connectedPlatforms: ConnectedPlatform[]
   linkedinProfile?: any
   twitterProfile?: any
@@ -111,6 +110,8 @@ const ConnectAccounts = ({
             return 'LinkedIn connected successfully.'
           case 'x_connected':
             return 'Twitter connected successfully.'
+          case 'pinterest_connected':
+            return 'Pinterest connected successfully.'
           default:
             return 'Action completed successfully.'
         }
@@ -139,6 +140,18 @@ const ConnectAccounts = ({
       bgColor: 'bg-slate-50',
       description: 'Real-time conversations',
       isAvailable: true
+    }, {
+      id: 'pinterest',
+      name: 'Pinterest',
+      icon: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="25" height="25" viewBox="0 0 48 48">
+          <circle cx="24" cy="24" r="20" fill="#E60023"></circle><path fill="#FFF" d="M24.4439087,11.4161377c-8.6323242,0-13.2153931,5.7946167-13.2153931,12.1030884	c0,2.9338379,1.5615234,6.5853882,4.0599976,7.7484131c0.378418,0.1762085,0.581543,0.1000366,0.668457-0.2669067	c0.0668945-0.2784424,0.4038086-1.6369019,0.5553589-2.2684326c0.0484619-0.2015381,0.0246582-0.3746338-0.1384277-0.5731201	c-0.8269653-1.0030518-1.4884644-2.8461304-1.4884644-4.5645752c0-4.4115601,3.3399658-8.6799927,9.0299683-8.6799927	c4.9130859,0,8.3530884,3.3484497,8.3530884,8.1369019c0,5.4099731-2.7322998,9.1584473-6.2869263,9.1584473	c-1.9630737,0-3.4330444-1.6238403-2.9615479-3.6153564c0.5654297-2.3769531,1.6569214-4.9415283,1.6569214-6.6584473	c0-1.5354004-0.8230591-2.8169556-2.5299683-2.8169556c-2.006958,0-3.6184692,2.0753784-3.6184692,4.8569336	c0,1.7700195,0.5984497,2.9684448,0.5984497,2.9684448s-1.9822998,8.3815308-2.3453979,9.9415283	c-0.4019775,1.72229-0.2453003,4.1416016-0.0713501,5.7233887l0,0c0.4511108,0.1768799,0.9024048,0.3537598,1.3687744,0.4981079l0,0	c0.8168945-1.3278198,2.0349731-3.5056763,2.4864502-5.2422485c0.2438354-0.9361572,1.2468872-4.7546387,1.2468872-4.7546387	c0.6515503,1.2438965,2.5561523,2.296936,4.5831299,2.296936c6.0314941,0,10.378418-5.546936,10.378418-12.4400024	C36.7738647,16.3591919,31.3823242,11.4161377,24.4439087,11.4161377z"></path>
+        </svg>
+      ),
+      color: 'text-red-600',
+      bgColor: 'bg-red-50',
+      description: 'Visual discovery and bookmarking',
+      isAvailable: false,
     },
     {
       id: 'devto',
@@ -156,7 +169,7 @@ const ConnectAccounts = ({
     platform.description.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const isConnected = (platformId: string) => 
+  const isConnected = (platformId: string) =>
     connectedPlatforms.some(p => p.id === platformId)
 
   const getPlatformProfile = (platformId: string) => {
@@ -178,6 +191,15 @@ const ConnectAccounts = ({
         return {
           name: devToPlatform.name || 'Dev.to Account',
           detail: devToPlatform.username || 'Connected'
+        }
+      }
+    }
+    if (platformId === 'pinterest') {
+      const pinterestPlatform = connectedPlatforms.find(p => p.id === 'pinterest')
+      if (pinterestPlatform) {
+        return {
+          name: pinterestPlatform.name || 'Pinterest Account',
+          detail: 'Connected'
         }
       }
     }
@@ -237,6 +259,8 @@ const ConnectAccounts = ({
       } else if (platformId === 'devto') {
         setShowDevToModal(true)
         setLoadingPlatform(null)
+      }else if (platformId === 'pinterest') {
+        window.location.href = '/api/social/pinterest/connect'
       }
     } catch (err) {
       setError(`Failed to connect ${platformId}`)
@@ -247,11 +271,11 @@ const ConnectAccounts = ({
   const disconnectPlatform = async (platformId: string) => {
     setLoadingPlatform(platformId)
     setError(null)
-    
+
     try {
       const routeId = platformId === 'devto' ? 'dev_to' : platformId
       const response = await axios.post(`/api/social/${routeId}/disconnect`)
-      
+
       if (response.data.success) {
         setConnectedPlatforms(prev => prev.filter(p => p.id !== platformId))
         setBanner({ type: 'success', message: response.data.message || 'Disconnected successfully.' })
@@ -267,10 +291,10 @@ const ConnectAccounts = ({
 
   const getConnectionButton = (platform: typeof platforms[0]) => {
     const connected = isConnected(platform.id)
-    
+
     if (!platform.isAvailable) {
       return (
-        <Button 
+        <Button
           variant="outline"
           disabled
           className="w-full opacity-50"
@@ -282,7 +306,7 @@ const ConnectAccounts = ({
 
     if (connected) {
       return (
-        <Button 
+        <Button
           variant="outline"
           onClick={() => disconnectPlatform(platform.id)}
           disabled={loadingPlatform === platform.id}
@@ -298,7 +322,7 @@ const ConnectAccounts = ({
     }
 
     return (
-      <Button 
+      <Button
         variant="accent"
         onClick={() => connectPlatform(platform.id)}
         disabled={loadingPlatform === platform.id || !limits.platforms.canConnectMore}
@@ -328,7 +352,7 @@ const ConnectAccounts = ({
           <Alert className="mb-6 border-amber-200 bg-amber-50">
             <AlertCircle className="h-4 w-4 text-amber-600" />
             <AlertDescription className="text-amber-800">
-              You've reached your limit of {limits.platforms.maxAllowed} connected platforms. 
+              You've reached your limit of {limits.platforms.maxAllowed} connected platforms.
               <a href="/pricing" className="font-semibold ml-1 hover:underline">Upgrade your plan</a> to connect more.
             </AlertDescription>
           </Alert>
@@ -365,11 +389,10 @@ const ConnectAccounts = ({
           <div className="bg-white rounded-lg border border-slate-200 p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-slate-600">Connected Platforms</h3>
-              <span className={`text-xs px-2 py-1 rounded-full ${
-                limits.platforms.percentage >= 90 ? 'bg-red-100 text-red-600' :
-                limits.platforms.percentage >= 70 ? 'bg-amber-100 text-amber-600' :
-                'bg-emerald-100 text-emerald-600'
-              }`}>
+              <span className={`text-xs px-2 py-1 rounded-full ${limits.platforms.percentage >= 90 ? 'bg-red-100 text-red-600' :
+                  limits.platforms.percentage >= 70 ? 'bg-amber-100 text-amber-600' :
+                    'bg-emerald-100 text-emerald-600'
+                }`}>
                 {limits.platforms.percentage}%
               </span>
             </div>
@@ -384,9 +407,8 @@ const ConnectAccounts = ({
           <div className="bg-white rounded-lg border border-slate-200 p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-slate-600">Account Status</h3>
-              <span className={`text-xs px-2 py-1 rounded-full ${
-                limits.platforms.hasReachedLimit ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'
-              }`}>
+              <span className={`text-xs px-2 py-1 rounded-full ${limits.platforms.hasReachedLimit ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'
+                }`}>
                 {limits.platforms.hasReachedLimit ? 'Limit Reached' : 'Active'}
               </span>
             </div>
@@ -402,7 +424,7 @@ const ConnectAccounts = ({
         <div className="mb-8 flex justify-between items-center gap-4 flex-wrap">
           <div className="relative max-w-md">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input 
+            <input
               type="text"
               placeholder="Search platforms..."
               value={searchQuery}
@@ -430,20 +452,19 @@ const ConnectAccounts = ({
           {filteredPlatforms.map((platform) => {
             const connected = isConnected(platform.id)
             const profile = getPlatformProfile(platform.id)
-            
+
             return (
-              <div 
+              <div
                 key={platform.id}
-                className={`bg-white rounded-xl border p-5 ${
-                  connected ? 'border-emerald-200' : 'border-slate-200'
-                } ${!platform.isAvailable ? 'opacity-70' : ''}`}
+                className={`bg-white rounded-xl border p-5 ${connected ? 'border-emerald-200' : 'border-slate-200'
+                  } ${!platform.isAvailable ? 'opacity-70' : ''}`}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className={`p-2.5 rounded-lg ${platform.bgColor}`}>
                       {platform.name === 'Dev.to' ? (
                         <Image
-                          src="https://cdn.iconscout.com/icon/free/png-512/free-dev-dot-to-logo-icon-svg-download-png-2878471.png?f=webp&w=512" 
+                          src="https://cdn.iconscout.com/icon/free/png-512/free-dev-dot-to-logo-icon-svg-download-png-2878471.png?f=webp&w=512"
                           alt="Dev.to"
                           width={20}
                           height={20}
@@ -476,7 +497,7 @@ const ConnectAccounts = ({
                 )}
 
                 {getConnectionButton(platform)}
-                
+
                 {!limits.platforms.canConnectMore && !connected && platform.isAvailable && (
                   <p className="mt-2 text-xs text-red-500 text-center">
                     Limit reached
@@ -506,26 +527,26 @@ const ConnectAccounts = ({
               Enter your Dev.to API key to connect your account
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="bg-slate-50 p-3 rounded-lg">
               <p className="text-sm font-medium text-slate-700 mb-2">How to get your API key:</p>
               <ol className="list-decimal list-inside text-sm text-slate-600 space-y-1 mb-3">
-                <li>Go to <a href="https://dev.to/settings" target="_blank"  className="text-indigo-600 hover:underline">dev.to/settings</a></li>
+                <li>Go to <a href="https://dev.to/settings" target="_blank" className="text-indigo-600 hover:underline">dev.to/settings</a></li>
                 <li>Navigate to <strong>Account → Extensions</strong></li>
                 <li>Click "Generate API Key"</li>
                 <li>Copy and paste the key below</li>
               </ol>
-              <a 
-                href="https://medium.com/@dhankhar14804/how-to-get-your-dev-to-api-key-easy-step-by-step-guide-b1727cf9962e" 
-                target="_blank" 
+              <a
+                href="https://medium.com/@dhankhar14804/how-to-get-your-dev-to-api-key-easy-step-by-step-guide-b1727cf9962e"
+                target="_blank"
                 className="inline-flex items-center text-sm text-indigo-600 hover:underline"
               >
                 <ExternalLink className="w-3 h-3 mr-1" />
                 Read this Step-by-Step Guide
               </a>
             </div>
-            
+
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700">API Key</label>
               <Input
@@ -536,13 +557,13 @@ const ConnectAccounts = ({
                 className="w-full"
               />
             </div>
-            
+
             {error && (
               <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200">
                 {error}
               </div>
             )}
-            
+
             <div className="flex justify-end gap-3 pt-2">
               <Button
                 variant="outline"

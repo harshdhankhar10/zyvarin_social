@@ -252,6 +252,16 @@ const AISuggestionsModal: React.FC<AISuggestionsModalProps> = ({
                                 {version.content?.length > 280 && ' - Exceeds limit!'}
                               </div>
                             )}
+                            {platform.provider === 'pinterest' && (
+                              <div className={`mt-2 text-xs font-medium ${
+                                version.content?.length > 500 
+                                  ? 'text-red-600' 
+                                  : 'text-green-600'
+                              }`}>
+                                {version.content?.length || 0}/500 characters
+                                {version.content?.length > 500 && ' - Exceeds limit!'}
+                              </div>
+                            )}
                             
                             {(version.content?.length > 150) && (
                               <button

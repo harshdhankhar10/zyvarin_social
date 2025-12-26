@@ -57,6 +57,12 @@ export default async function IntegrationsPage() {
         icon: Code2,
         color: 'text-gray-900',
         bgColor: 'bg-gray-50',
+      },
+      pinterest: {
+        name: 'Pinterest',
+        icon: Code2,
+        color: 'text-red-600',
+        bgColor: 'bg-red-50',
       }
     }
     return configs[provider] || {

@@ -34,6 +34,20 @@ const IntegrationsPage = () => {
       status: 'active'
     },
     {
+      name: 'Pinterest',
+      icon: 'P',
+      bg: 'bg-[#E60023]',
+      description: 'Share and discover visual content with Pinterest\'s visual search platform.',
+      features: [
+        'Create pins with descriptions up to 500 characters',
+        'Upload or link images',
+        'OAuth 2.0 secure authentication',
+        'Auto-publish to boards',
+        'Schedule pins in advance'
+      ],
+      status: 'active'
+    },
+    {
       name: 'Dev.to',
       icon: 'DEV',
       bg: 'bg-foreground',

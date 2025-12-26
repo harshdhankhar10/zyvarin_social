@@ -50,6 +50,7 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
     id: account.provider,
     label: account.provider === 'linkedin' ? 'LinkedIn' : 
            account.provider === 'twitter' ? 'Twitter' : 
+           account.provider === 'pinterest' ? 'Pinterest' :
            account.provider === 'medium' ? 'Medium' :
            account.provider === 'devto' ? 'Dev.to' : account.provider,
     icon: getProviderIcon(account.provider)
@@ -170,7 +171,9 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
               />
             ) : (
               <div className={`w-10 h-10 rounded-full flex items-center justify-center ${colorClass.split(' ')[1]}`}>
-                <Icon className={`w-5 h-5 ${colorClass.split(' ')[0]}`} />
+                {typeof Icon === 'function' ? (
+                  <Icon className={`w-5 h-5 ${colorClass.split(' ')[0]}`} />
+                ) : null}
               </div>
             )}
             <div className="flex-1 min-w-0">
@@ -182,6 +185,7 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
                   <span className={colorClass.split(' ')[0]}>
                     {activeTab === 'linkedin' ? 'LinkedIn' : 
                      activeTab === 'twitter' ? 'Twitter' : 
+                     activeTab === 'pinterest' ? 'Pinterest' :
                       activeTab === 'medium' ? 'Medium' :
                        activeTab === 'devto' ? 'Dev.to' : activeTab}
                   </span>
@@ -245,6 +249,14 @@ const PreviewPanel: React.FC<PreviewPanelProps> = ({
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
                 <p className="text-sm text-red-700">Exceeds Twitter limit ({content.length}/280)</p>
+              </div>
+            </div>
+          )}
+          {activeTab === 'pinterest' && content.length > 500 && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                <p className="text-sm text-red-700">Exceeds Pinterest limit ({content.length}/500)</p>
               </div>
             </div>
           )}

@@ -45,6 +45,7 @@ const page = async () => {
 
   const linkedinAccount = connectedAccounts.find(acc => acc.provider === 'linkedin')
   const twitterAccount = connectedAccounts.find(acc => acc.provider === 'twitter')
+  const pinterestAccount = connectedAccounts.find(acc => acc.provider === 'pinterest')
 
   const [canUseAI, canPublish, aiProgress, postsProgress] = await Promise.all([
     canCreateAIContent(user.id),
@@ -98,6 +99,7 @@ const page = async () => {
         connectedAccounts={connectedAccounts}
         hasLinkedin={!!linkedinAccount}
         hasTwitter={!!twitterAccount}
+        hasPinterest={!!pinterestAccount}
         aiLimits={limits.ai}
         userPlan={await currentUserPlan(user.id)}
       />

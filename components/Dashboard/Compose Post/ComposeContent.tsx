@@ -15,13 +15,15 @@ import { publishToMultiplePlatforms } from '@/utils/publishPost'
 const ComposeContent = ({ 
   connectedAccounts, 
   hasLinkedin, 
-  hasTwitter ,
+  hasTwitter,
+  hasPinterest,
   aiLimits,
   userPlan
 }: { 
   connectedAccounts: Array<{ provider: string; profileData: any }>
   hasLinkedin: boolean
   hasTwitter: boolean
+  hasPinterest: boolean
   aiLimits: {
     canUse: boolean;
     remaining: number;

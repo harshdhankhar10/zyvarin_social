@@ -18,6 +18,7 @@ const DashboardHomepage = ({ data }: any) => {
         switch (platform) {
             case 'linkedin': return <Linkedin className="w-4 h-4" />
             case 'twitter': return <Twitter className="w-4 h-4" />
+            case 'pinterest': return <Globe className="w-4 h-4 text-red-600" />
             case 'devto': return <Code2 className="w-4 h-4" />
             default: return <Globe className="w-4 h-4" />
         }

@@ -116,7 +116,7 @@ const EditorPanel: React.FC<EditorPanelProps> = ({
 
   const toneOptions = ['Professional', 'Conversational', 'Educational', 'Inspirational', 'Persuasive', 'Casual']
   const contentOptions = ['Short & Punchy', 'Detailed Professional', 'Engaging Story', 'Thread Format']
-  const platformOptions = ['Twitter Optimized', 'LinkedIn Ready', 'Cross-Platform']
+  const platformOptions = ['Twitter Optimized', 'LinkedIn Ready', 'Pinterest Ready', 'Cross-Platform']
   const formatOptions = ['Bullet Points', 'Q&A Style', 'Problem-Solution', 'How-To Guide']
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
