@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         data: {
           socialProviderId: devtoProvider.id,
           content,
-          mediaUrls,
+          mediaUrls: mediaUrls && mediaUrls.length > 0 ? mediaUrls : [],
           status: 'SCHEDULED',
           scheduledFor: new Date(scheduledFor),
           postedAt: null

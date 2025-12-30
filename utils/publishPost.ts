@@ -1,12 +1,15 @@
 import axios from 'axios';
+import { validateScheduleTime } from './timezoneUtils';
 
 interface PublishPostParams {
   platform: string;
   content: string;
   mediaUrls?: string[];
   mediaAlts?: string[];
+  logo?: string;
   postType?: 'immediate' | 'scheduled';
   scheduledFor?: string | null;
+  userTimezone?: string | null;
 }
 
 interface PublishResult {
@@ -17,8 +20,28 @@ interface PublishResult {
 }
 
 export async function publishPost(params: PublishPostParams): Promise<PublishResult> {
-  const { platform, content, mediaUrls = [], mediaAlts = [], postType = 'immediate', scheduledFor = null } = params;
+  const { platform, content, mediaUrls = [], mediaAlts = [], logo, postType = 'immediate', scheduledFor = null, userTimezone = null } = params;
   
+  if (postType === 'scheduled') {
+    const validation = validateScheduleTime(scheduledFor, userTimezone);
+    if (!validation.valid) {
+      return {
+        platform,
+        success: false,
+        message: `❌ ${validation.error}`,
+        error: validation.error
+      };
+    }
+  }
+
+  let finalMediaUrls = [...mediaUrls];
+  let finalMediaAlts = [...mediaAlts];
+
+  if (logo && !finalMediaUrls.includes(logo)) {
+    finalMediaUrls.unshift(logo);
+    finalMediaAlts.unshift('Brand Logo');
+  }
+
   const stripMarkdownBasic = (text: string): string => {
     return text
       .replace(/\*\*(.*?)\*\*/g, '$1')
@@ -49,10 +72,11 @@ export async function publishPost(params: PublishPostParams): Promise<PublishRes
   try {
     const response = await axios.post(`/api/social/${platformName}/post`, {
       content: formattedContent,
-      mediaUrls,
-      mediaAlts,
+      mediaUrls: finalMediaUrls,
+      mediaAlts: finalMediaAlts,
       postType,
-      scheduledFor
+      scheduledFor: postType === 'scheduled' ? scheduledFor : null,
+      userTimezone
     });
 
     const data = response.data;
@@ -65,6 +89,7 @@ export async function publishPost(params: PublishPostParams): Promise<PublishRes
         message: `✅ ${postType === 'scheduled' ? 'Scheduled' : 'Posted'}`
       };
     } else {
+      console.error(`[${displayPlatform}] API Error:`, data.error);
       return {
         platform: displayPlatform,
         success: false,
@@ -73,8 +98,14 @@ export async function publishPost(params: PublishPostParams): Promise<PublishRes
       };
     }
   } catch (error: any) {
-    const errorMsg = error.response?.data?.error || 'Failed to connect';
+    const errorMsg = error.response?.data?.error || error.message || 'Failed to connect';
     const displayPlatform = platformName === 'dev_to' ? 'devto' : platformName;
+    
+    console.error(`[${displayPlatform}] Publish Error:`, {
+      status: error.response?.status,
+      error: errorMsg,
+      data: error.response?.data
+    });
     
     return {
       platform: displayPlatform,
@@ -92,7 +123,8 @@ export async function publishToMultiplePlatforms(
   mediaUrls: string[] = [],
   mediaAlts: string[] = [],
   postType: 'immediate' | 'scheduled' = 'immediate',
-  scheduledFor: string | null = null
+  scheduledFor: string | null = null,
+  userTimezone: string | null = null
 ): Promise<{
   results: PublishResult[];
   successCount: number;
@@ -108,7 +140,8 @@ export async function publishToMultiplePlatforms(
       mediaUrls,
       mediaAlts,
       postType,
-      scheduledFor
+      scheduledFor,
+      userTimezone
     });
     results.push(result);
   }

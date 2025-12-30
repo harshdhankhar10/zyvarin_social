@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
         data: {
           socialProviderId: pinterestProvider.id,
           content,
-          mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
+          mediaUrls: mediaUrls && mediaUrls.length > 0 ? mediaUrls : [],
           status: 'SCHEDULED',
           scheduledFor: new Date(scheduledFor),
           postedAt: null

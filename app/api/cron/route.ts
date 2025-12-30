@@ -281,15 +281,12 @@ export async function GET(req: NextRequest) {
     }
 
     const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
 
     const scheduledPosts = await prisma.post.findMany({
       where: {
         status: 'SCHEDULED',
         scheduledFor: {
-          lte: endOfDay,
-          gte: startOfDay
+          lte: now
         }
       },
       include: {
@@ -326,6 +323,14 @@ export async function GET(req: NextRequest) {
         );
 
         if (result.success) {
+          await prisma.post.update({
+            where: { id: post.id },
+            data: {
+              status: 'POSTED',
+              postedAt: new Date()
+            }
+          });
+
           await prisma.notification.create({
             data: {
               userId: post.socialProvider.user.id,

@@ -25,7 +25,9 @@
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "countries-and-timezones": "^3.8.0",
     "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
     "dotenv": "^17.2.3",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.4",
@@ -38,6 +40,7 @@
     "razorpay": "^2.9.6",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
+    "react-timezone-select": "^3.2.8",
     "recharts": "^3.5.1",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7"

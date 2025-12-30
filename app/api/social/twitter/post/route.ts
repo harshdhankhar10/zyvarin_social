@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
         data: {
           socialProviderId: twitterProvider.id,
           content,
-          mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
+          mediaUrls: mediaUrls && mediaUrls.length > 0 ? mediaUrls : [],
           status: 'SCHEDULED',
           scheduledFor: new Date(scheduledFor),
           postedAt: null
@@ -188,8 +188,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Twitter not connected" }, { status: 400 })
     }
 
-    const tweetPayload = {
+    const tweetPayload: any = {
       text: content.trim()
+    }
+
+    if (mediaUrls && mediaUrls.length > 0) {
+      const mediaIds = []
+      for (const mediaUrl of mediaUrls) {
+        try {
+          const mediaResponse = await fetch(mediaUrl)
+          const buffer = await mediaResponse.arrayBuffer()
+          const base64Data = Buffer.from(buffer).toString('base64')
+          const mediaType = mediaResponse.headers.get('content-type') || 'image/jpeg'
+
+          const uploadResponse = await fetch('https://upload.twitter.com/1.1/media/upload.json', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${updatedProvider.access_token}`,
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+              media_data: base64Data,
+            })
+          })
+
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json()
+            mediaIds.push(uploadResult.media_id_string)
+          }
+        } catch (err) {
+          console.warn(`Failed to upload media from ${mediaUrl}:`, err)
+        }
+      }
+
+      if (mediaIds.length > 0) {
+        tweetPayload.media = {
+          media_ids: mediaIds
+        }
+      }
     }
 
     const tweetResponse = await fetch('https://api.twitter.com/2/tweets', {

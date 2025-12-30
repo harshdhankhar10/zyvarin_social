@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
         data: {
           socialProviderId: linkedinProvider.id,
           content,
-          mediaUrls,
+          mediaUrls: mediaUrls && mediaUrls.length > 0 ? mediaUrls : [],
           status: 'SCHEDULED',
           scheduledFor: new Date(scheduledFor),
           postedAt: null

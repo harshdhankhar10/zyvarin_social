@@ -10,6 +10,7 @@ import AISuggestionsModal from './AISuggestionsModal'
 import { Users } from 'lucide-react'
 import Link from 'next/link'
 import { publishToMultiplePlatforms } from '@/utils/publishPost'
+import { validateScheduleTime } from '@/utils/timezoneUtils'
 
 
 const ComposeContent = ({ 
@@ -18,7 +19,8 @@ const ComposeContent = ({
   hasTwitter,
   hasPinterest,
   aiLimits,
-  userPlan
+  userPlan,
+  userTimezone
 }: { 
   connectedAccounts: Array<{ provider: string; profileData: any }>
   hasLinkedin: boolean
@@ -33,6 +35,7 @@ const ComposeContent = ({
     hasReachedLimit: boolean;
   },
   userPlan: string | null
+  userTimezone: string | null
 }) => {
   const router = useRouter()
   const [content, setContent] = useState('')
@@ -146,6 +149,15 @@ const handleUploadImage = async (file: File): Promise<string | null> => {
     const postType = isScheduled ? 'scheduled' : 'immediate'
     const scheduledFor = isScheduled ? new Date(scheduleTime).toISOString() : null
 
+    if (isScheduled) {
+      const validation = validateScheduleTime(scheduledFor, userTimezone)
+      if (!validation.valid) {
+        setResult({ success: false, message: `❌ ${validation.error}` })
+        setPublishLoading(false)
+        return
+      }
+    }
+
     try {
       const { successCount, totalCount, message } = await publishToMultiplePlatforms(
         selectedPlatforms,
@@ -153,7 +165,8 @@ const handleUploadImage = async (file: File): Promise<string | null> => {
         mediaUrls,
         mediaAlts,
         postType,
-        scheduledFor
+        scheduledFor,
+        userTimezone
       )
       
       setResult({ 

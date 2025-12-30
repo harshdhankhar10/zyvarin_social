@@ -1,10 +1,11 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import { Button } from '@/components/ui/button'
-import { Upload, Loader2, X } from 'lucide-react'
+import { Upload, Loader2, X, Search } from 'lucide-react'
+import * as tzDB from 'countries-and-timezones'
 
 interface ProfileFormProps {
   user: {
@@ -18,16 +19,41 @@ interface ProfileFormProps {
   }
 }
 
+// Get all timezones from countries-and-timezones package
+const getAllTimezones = () => {
+  const allTimezones = tzDB.getAllTimezones() as Record<string, any>
+  return Object.values(allTimezones)
+    .map((tz: any) => ({
+      value: tz.name,
+      label: `${tz.name} (UTC${tz.utcOffset >= 0 ? '+' : ''}${(tz.utcOffset / 60).toFixed(1).replace('.0', '')})`
+    }))
+    .sort((a: any, b: any) => a.label.localeCompare(b.label))
+}
+
+const TIMEZONE_LIST = getAllTimezones()
+
 export default function ProfileForm({ user }: ProfileFormProps) {
   const router = useRouter()
   const [fullName, setFullName] = useState(user.fullName)
   const [timezone, setTimezone] = useState(user.timezone || 'Asia/Kolkata')
+  const [timezoneSearch, setTimezoneSearch] = useState('')
   const [profileImage, setProfileImage] = useState<string | null>(user.profileImage || null)
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null)
   const [profileImagePreview, setProfileImagePreview] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
   const [uploadLoading, setUploadLoading] = useState(false)
-  const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const filteredTimezones = useMemo(() => {
+    if (!timezoneSearch.trim()) return TIMEZONE_LIST
+
+    const search = timezoneSearch.toLowerCase()
+    return TIMEZONE_LIST.filter(
+      (tz) =>
+        tz.label.toLowerCase().includes(search) ||
+        tz.value.toLowerCase().includes(search)
+    )
+  }, [timezoneSearch])
 
   const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -82,6 +108,12 @@ export default function ProfileForm({ user }: ProfileFormProps) {
     setIsLoading(true)
     setMessage(null)
 
+    if (!timezone) {
+      setMessage({ type: 'error', text: 'Please select a timezone' })
+      setIsLoading(false)
+      return
+    }
+
     try {
       let uploadedImageUrl = profileImage
 
@@ -123,9 +155,11 @@ export default function ProfileForm({ user }: ProfileFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {message && (
-        <div className={`p-4 rounded-lg ${
-          message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-        }`}>
+        <div
+          className={`p-4 rounded-lg ${
+            message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+          }`}
+        >
           {message.text}
         </div>
       )}
@@ -149,7 +183,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
                       setProfileImageFile(null)
                       setProfileImagePreview('')
                     }}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -164,7 +198,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
 
           <div className="flex-1">
             <label htmlFor="profile-image" className="block">
-              <span className="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer">
+              <span className="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer transition-colors">
                 {uploadLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
@@ -183,9 +217,7 @@ export default function ProfileForm({ user }: ProfileFormProps) {
               className="hidden"
               disabled={uploadLoading}
             />
-            <p className="text-xs text-gray-500 mt-2">
-              JPG, PNG up to 5MB
-            </p>
+            <p className="text-xs text-gray-500 mt-2">JPG, PNG up to 5MB</p>
           </div>
         </div>
       </div>
@@ -195,21 +227,17 @@ export default function ProfileForm({ user }: ProfileFormProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Full Name
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
             <input
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email Address
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
             <input
               type="email"
               value={user.email}
@@ -223,28 +251,61 @@ export default function ProfileForm({ user }: ProfileFormProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Time Zone
+              Time Zone <span className="text-red-500">*</span>
             </label>
-            <select
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="Asia/Kolkata">India (IST)</option>
-              <option value="America/New_York">Eastern Time (ET)</option>
-              <option value="America/Chicago">Central Time (CT)</option>
-              <option value="America/Denver">Mountain Time (MT)</option>
-              <option value="America/Los_Angeles">Pacific Time (PT)</option>
-              <option value="Europe/London">London (GMT)</option>
-              <option value="Europe/Paris">Paris (CET)</option>
-              <option value="Asia/Tokyo">Tokyo (JST)</option>
-              <option value="Australia/Sydney">Sydney (AEDT)</option>
-            </select>
+            <div className="space-y-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search timezone..."
+                  value={timezoneSearch}
+                  onChange={(e) => setTimezoneSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                />
+              </div>
+
+              <div className="border border-gray-300 rounded-lg max-h-64 overflow-y-auto bg-white">
+                {filteredTimezones.length > 0 ? (
+                  filteredTimezones.map((tz) => (
+                    <button
+                      key={tz.value}
+                      type="button"
+                      onClick={() => {
+                        setTimezone(tz.value)
+                        setTimezoneSearch('')
+                      }}
+                      className={`w-full text-left px-4 py-2.5 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 transition-colors ${
+                        timezone === tz.value
+                          ? 'bg-blue-100 font-medium text-blue-900'
+                          : 'text-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>{tz.label}</span>
+                        {timezone === tz.value && (
+                          <span className="text-blue-600 font-bold">✓</span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-500">{tz.value}</span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-8 text-center text-gray-500">
+                    No timezones found for "{timezoneSearch}"
+                  </div>
+                )}
+              </div>
+
+              <div className="text-sm text-gray-600 bg-blue-50 p-2 rounded">
+                Selected: <span className="font-medium text-blue-700">
+                  {TIMEZONE_LIST.find(tz => tz.value === timezone)?.label || timezone}
+                </span>
+              </div>
+            </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Account Role
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Account Role</label>
             <input
               type="text"
               value={user.role}
@@ -260,13 +321,11 @@ export default function ProfileForm({ user }: ProfileFormProps) {
           <p className="text-sm font-medium text-gray-900">Account Status</p>
           <p className="text-sm text-gray-500">{user.status}</p>
         </div>
-        <Button
-          type="submit"
-          disabled={isLoading || uploadLoading}
-        >
+        <Button type="submit" disabled={isLoading || uploadLoading}>
           {isLoading ? 'Saving...' : 'Save Changes'}
         </Button>
       </div>
     </form>
   )
 }
+
