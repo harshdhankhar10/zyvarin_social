@@ -14,14 +14,14 @@ export async function POST(request: NextRequest) {
       session = { id: userIdHeader } as any
     }
     
-    if (!session) {
+    if (!session || typeof session === 'boolean') {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       )
     }
 
-    if (!session?.id) {
+    if (!session.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
