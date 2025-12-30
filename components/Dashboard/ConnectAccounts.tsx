@@ -8,7 +8,6 @@ import {
   Code, ExternalLink
 } from 'lucide-react'
 import PinterestIcon from '@/components/Icons/PinterestIcon'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import axios from 'axios'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -306,18 +305,20 @@ const ConnectAccounts = ({
 
     if (connected) {
       return (
-        <Button
-          variant="outline"
-          onClick={() => disconnectPlatform(platform.id)}
-          disabled={loadingPlatform === platform.id}
-          className="w-full"
-        >
-          {loadingPlatform === platform.id ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            'Disconnect'
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => disconnectPlatform(platform.id)}
+            disabled={loadingPlatform === platform.id}
+            className="w-full"
+          >
+            {loadingPlatform === platform.id ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              'Disconnect'
+            )}
+          </Button>
+        </div>
       )
     }
 

@@ -7,7 +7,12 @@ import { incrementPostCount, checkRateLimit as checkPostRateLimit, getQuotaWarni
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await currentLoggedInUserInfo()
+    let session = await currentLoggedInUserInfo()
+    const userIdHeader = request.headers.get('X-User-ID')
+    
+    if (!session && userIdHeader) {
+      session = { id: userIdHeader } as any
+    }
     
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

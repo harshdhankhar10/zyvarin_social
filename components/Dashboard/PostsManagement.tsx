@@ -1,9 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Edit2, Trash2, Calendar, CheckCircle, AlertCircle, Loader } from 'lucide-react'
+import { Edit2, Trash2, Calendar, CheckCircle, AlertCircle, Loader, Copy, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatDate } from '@/utils/formatDate'
+import { publishScheduledPost } from '@/app/actions/publishPost'
+import { editScheduledPost, deleteScheduledPost, duplicatePost, reschedulePost, bulkDeletePosts, bulkReschedulePosts } from '@/app/actions/postManagement'
 
 interface Post {
   id: string
@@ -25,6 +27,10 @@ export default function PostsManagement() {
   const [editContent, setEditContent] = useState('')
   const [newScheduledTime, setNewScheduledTime] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
+  const [publishing, setPublishing] = useState<string | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [duplicationTime, setDuplicationTime] = useState<{ [key: string]: string }>({})
+  const [showRescheduleModal, setShowRescheduleModal] = useState<string | null>(null)
 
   useEffect(() => {
     fetchPosts()
@@ -57,37 +63,33 @@ export default function PostsManagement() {
 
   const handleEditPost = async (postId: string) => {
     if (!editContent.trim()) {
-      alert('Content cannot be empty')
+      setMessage({ type: 'error', text: 'Content cannot be empty' })
       return
     }
 
     try {
       setActionLoading(true)
-      const res = await fetch('/api/social/post/edit', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId, content: editContent })
-      })
+      const result = await editScheduledPost(postId, editContent)
 
-      if (res.ok) {
-        alert('Post updated successfully')
+      if (result.success) {
+        setMessage({ type: 'success', text: 'Post updated successfully' })
         setEditingPostId(null)
         setEditContent('')
-        fetchPosts()
+        setTimeout(() => fetchPosts(), 500)
       } else {
-        const data = await res.json()
-        alert(data.error || 'Failed to update post')
+        setMessage({ type: 'error', text: result.error || 'Failed to update post' })
       }
     } catch (error) {
-      alert('Error updating post')
+      setMessage({ type: 'error', text: 'Error updating post' })
     } finally {
       setActionLoading(false)
+      setTimeout(() => setMessage(null), 3000)
     }
   }
 
   const handleDeletePosts = async () => {
     if (selectedPosts.size === 0) {
-      alert('Select posts to delete')
+      setMessage({ type: 'error', text: 'Select posts to delete' })
       return
     }
 
@@ -95,62 +97,101 @@ export default function PostsManagement() {
 
     try {
       setActionLoading(true)
-      const res = await fetch('/api/social/post/bulk', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postIds: Array.from(selectedPosts) })
-      })
+      const result = await bulkDeletePosts(Array.from(selectedPosts))
 
-      if (res.ok) {
-        alert('Posts deleted successfully')
+      if (result.success) {
+        setMessage({ type: 'success', text: result.message || 'Posts deleted successfully' })
         setSelectedPosts(new Set())
-        fetchPosts()
+        setTimeout(() => fetchPosts(), 500)
       } else {
-        const data = await res.json()
-        alert(data.error || 'Failed to delete posts')
+        setMessage({ type: 'error', text: result.error || 'Failed to delete posts' })
       }
     } catch (error) {
-      alert('Error deleting posts')
+      setMessage({ type: 'error', text: 'Error deleting posts' })
     } finally {
       setActionLoading(false)
+      setTimeout(() => setMessage(null), 3000)
     }
   }
 
   const handleReschedulePosts = async () => {
     if (selectedPosts.size === 0) {
-      alert('Select posts to reschedule')
+      setMessage({ type: 'error', text: 'Select posts to reschedule' })
       return
     }
 
     if (!newScheduledTime) {
-      alert('Select a new time')
+      setMessage({ type: 'error', text: 'Select a new time' })
       return
     }
 
     try {
       setActionLoading(true)
-      const res = await fetch('/api/social/post/bulk', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          postIds: Array.from(selectedPosts),
-          scheduledFor: newScheduledTime
-        })
-      })
+      const scheduledDate = new Date(newScheduledTime)
+      const result = await bulkReschedulePosts(Array.from(selectedPosts), scheduledDate)
 
-      if (res.ok) {
-        alert('Posts rescheduled successfully')
+      if (result.success) {
+        setMessage({ type: 'success', text: result.message || 'Posts rescheduled successfully' })
         setSelectedPosts(new Set())
         setNewScheduledTime('')
-        fetchPosts()
+        setTimeout(() => fetchPosts(), 500)
       } else {
-        const data = await res.json()
-        alert(data.error || 'Failed to reschedule posts')
+        setMessage({ type: 'error', text: result.error || 'Failed to reschedule posts' })
       }
     } catch (error) {
-      alert('Error rescheduling posts')
+      setMessage({ type: 'error', text: 'Error rescheduling posts' })
     } finally {
       setActionLoading(false)
+      setTimeout(() => setMessage(null), 3000)
+    }
+  }
+
+  const handleDuplicatePost = async (postId: string) => {
+    try {
+      setActionLoading(true)
+      const scheduledTime = duplicationTime[postId]
+      const scheduledDate = scheduledTime ? new Date(scheduledTime) : undefined
+      const result = await duplicatePost(postId, scheduledDate)
+
+      if (result.success) {
+        setMessage({ type: 'success', text: 'Post duplicated successfully' })
+        setDuplicationTime({ ...duplicationTime, [postId]: '' })
+        setTimeout(() => fetchPosts(), 500)
+      } else {
+        setMessage({ type: 'error', text: result.error || 'Failed to duplicate post' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error duplicating post' })
+    } finally {
+      setActionLoading(false)
+      setTimeout(() => setMessage(null), 3000)
+    }
+  }
+
+  const handleReschedulePost = async (postId: string) => {
+    if (!duplicationTime[postId]) {
+      setMessage({ type: 'error', text: 'Select a new time' })
+      return
+    }
+
+    try {
+      setActionLoading(true)
+      const scheduledDate = new Date(duplicationTime[postId])
+      const result = await reschedulePost(postId, scheduledDate)
+
+      if (result.success) {
+        setMessage({ type: 'success', text: 'Post rescheduled successfully' })
+        setShowRescheduleModal(null)
+        setDuplicationTime({ ...duplicationTime, [postId]: '' })
+        setTimeout(() => fetchPosts(), 500)
+      } else {
+        setMessage({ type: 'error', text: result.error || 'Failed to reschedule post' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error rescheduling post' })
+    } finally {
+      setActionLoading(false)
+      setTimeout(() => setMessage(null), 3000)
     }
   }
 
@@ -172,6 +213,23 @@ export default function PostsManagement() {
     }
   }
 
+  const handlePublishNow = async (postId: string) => {
+    setPublishing(postId)
+    const result = await publishScheduledPost(postId)
+
+    if (result.success) {
+      setMessage({ type: 'success', text: 'Post published successfully!' })
+      setTimeout(() => {
+        fetchPosts()
+      }, 1000)
+    } else {
+      setMessage({ type: 'error', text: result.error || 'Failed to publish post' })
+    }
+
+    setPublishing(null)
+    setTimeout(() => setMessage(null), 3000)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -182,6 +240,12 @@ export default function PostsManagement() {
 
   return (
     <div className="space-y-6">
+      {message && (
+        <div className={`px-4 py-3 rounded-lg text-white font-medium ${message.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
+          {message.text}
+        </div>
+      )}
+
       <div>
         <h1 className="text-3xl font-bold mb-2">Manage Posts</h1>
         <p className="text-gray-600">Edit, reschedule, or delete your posts</p>
@@ -271,17 +335,45 @@ export default function PostsManagement() {
                           </span>
                           <span className="text-xs text-gray-500 capitalize">{post.socialProvider.provider}</span>
                         </div>
-                        {post.status !== 'POSTED' && (
-                          <button
-                            onClick={() => {
-                              setEditingPostId(post.id)
-                              setEditContent(post.content)
-                            }}
-                            className="text-blue-600 hover:text-blue-700"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {post.status === 'SCHEDULED' && (
+                            <>
+                              <button
+                                onClick={() => handlePublishNow(post.id)}
+                                disabled={publishing === post.id}
+                                className="px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              >
+                                {publishing === post.id ? 'Publishing...' : 'Publish'}
+                              </button>
+                              <button
+                                onClick={() => setShowRescheduleModal(post.id)}
+                                className="px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors flex items-center gap-1"
+                              >
+                                <Clock className="w-3 h-3" />
+                                Reschedule
+                              </button>
+                              <button
+                                onClick={() => handleDuplicatePost(post.id)}
+                                disabled={actionLoading}
+                                className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-1"
+                              >
+                                <Copy className="w-3 h-3" />
+                                Duplicate
+                              </button>
+                            </>
+                          )}
+                          {post.status !== 'POSTED' && (
+                            <button
+                              onClick={() => {
+                                setEditingPostId(post.id)
+                                setEditContent(post.content)
+                              }}
+                              className="text-blue-600 hover:text-blue-700"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       <p className="text-sm text-gray-700 mb-2 line-clamp-2">{post.content}</p>
@@ -301,6 +393,30 @@ export default function PostsManagement() {
                   )}
                 </div>
               </div>
+
+              {showRescheduleModal === post.id && (
+                <div className="mt-4 p-4 bg-gray-100 rounded border border-gray-300 flex gap-2">
+                  <input
+                    type="datetime-local"
+                    value={duplicationTime[post.id] || ''}
+                    onChange={(e) => setDuplicationTime({ ...duplicationTime, [post.id]: e.target.value })}
+                    className="px-3 py-2 border border-gray-300 rounded text-sm flex-1"
+                  />
+                  <button
+                    onClick={() => handleReschedulePost(post.id)}
+                    disabled={actionLoading}
+                    className="px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  >
+                    {actionLoading ? 'Saving...' : 'Confirm'}
+                  </button>
+                  <button
+                    onClick={() => setShowRescheduleModal(null)}
+                    className="px-3 py-2 text-sm bg-gray-400 text-white rounded hover:bg-gray-500 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
           ))
         )}

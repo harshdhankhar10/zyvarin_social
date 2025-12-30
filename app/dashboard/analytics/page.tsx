@@ -1,8 +1,10 @@
 import Analytics from '@/components/Dashboard/Analytics'
+import PostAnalytics from '@/components/Dashboard/PostAnalytics'
 import { currentLoggedInUserInfo } from '@/utils/currentLogegdInUserInfo'
 import prisma from '@/lib/prisma'
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, subDays, subMonths } from 'date-fns'
 import { currentUserPlan } from '../pricingUtils'
+
 const Page = async () => {
   const session = await currentLoggedInUserInfo()
   
@@ -168,8 +170,9 @@ const Page = async () => {
   }
 
   return (
-    <div>
+    <div className="space-y-8">
       <Analytics data={analyticsData} />
+      <PostAnalytics />
     </div>
   )
 }

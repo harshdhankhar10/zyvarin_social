@@ -1,4 +1,4 @@
-import DashboardHomepage from '@/components/Dashboard/DashboardHomepage'
+import DashboardOverview from '@/components/Dashboard/DashboardOverview'
 import { currentLoggedInUserInfo } from '@/utils/currentLogegdInUserInfo'
 import prisma from '@/lib/prisma'
 import { startOfMonth } from 'date-fns'
@@ -70,7 +70,7 @@ const Page = async () => {
       content: post.content.substring(0, 80) + (post.content.length > 80 ? '...' : ''),
       platform: provider.provider,
       status: post.status,
-      postedAt: post.postedAt
+      postedAt: post.postedAt ? post.postedAt.toISOString() : null
     }))
   ).sort((a, b) => new Date(b.postedAt || 0).getTime() - new Date(a.postedAt || 0).getTime()).slice(0, 3)
 
@@ -90,7 +90,7 @@ const Page = async () => {
     },
     connectedPlatforms,
     recentPosts,
-    recentAiUses: user.aiUsages.slice(0, 3),
+    recentAiUses: user.aiUsages.slice(0, 3).map(use => ({ ...use, createdAt: use.createdAt ? use.createdAt.toISOString() : null })),
     remainingAIGenerations: await getRemainingAIGenerations(user.id),
     remainingPosts: await getRemainingPosts(user.id),
     canPublishPost: await canPublishPost(user.id),
@@ -100,7 +100,7 @@ const Page = async () => {
 
 
 
-  return <DashboardHomepage data={dashboardData} />
+  return <DashboardOverview data={dashboardData} />
 }
 
 export default Page

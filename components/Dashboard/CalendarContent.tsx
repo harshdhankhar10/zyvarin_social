@@ -1,7 +1,8 @@
-'use client';
+'use client'
 
-import React, { useState } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, Linkedin, Twitter, FileText, MoreVertical } from 'lucide-react';
+import React, { useState } from 'react'
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, Linkedin, Twitter, FileText } from 'lucide-react'
+import { publishScheduledPost } from '@/app/actions/publishPost'
 
 interface Post {
   id: string;
@@ -17,8 +18,10 @@ interface CalendarContentProps {
 }
 
 const CalendarContent = ({ posts }: CalendarContentProps) => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState<'month' | 'list'>('month');
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [view, setView] = useState<'month' | 'list'>('month')
+  const [publishing, setPublishing] = useState<string | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const getPlatformIcon = (platform: string) => {
     switch (platform.toLowerCase()) {
@@ -85,9 +88,26 @@ const CalendarContent = ({ posts }: CalendarContentProps) => {
   };
 
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  };
+    const date = new Date(dateString)
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+  }
+
+  const handlePublishNow = async (postId: string) => {
+    setPublishing(postId)
+    const result = await publishScheduledPost(postId)
+
+    if (result.success) {
+      setMessage({ type: 'success', text: 'Post published successfully!' })
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
+    } else {
+      setMessage({ type: 'error', text: result.error || 'Failed to publish post' })
+    }
+
+    setPublishing(null)
+    setTimeout(() => setMessage(null), 3000)
+  }
 
   const renderMonthView = () => {
     const days = getDaysInMonth(currentDate);
@@ -240,8 +260,12 @@ const CalendarContent = ({ posts }: CalendarContentProps) => {
                             <p className="text-gray-700 leading-relaxed">{post.content}</p>
                           </div>
                           <div className="flex-shrink-0">
-                            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                              <MoreVertical className="w-5 h-5 text-gray-400" />
+                            <button 
+                              onClick={() => handlePublishNow(post.id)}
+                              disabled={publishing === post.id}
+                              className="px-3 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {publishing === post.id ? 'Publishing...' : 'Publish'}
                             </button>
                           </div>
                         </div>
@@ -263,6 +287,12 @@ const CalendarContent = ({ posts }: CalendarContentProps) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+      {message && (
+        <div className={`fixed top-4 right-4 px-4 py-3 rounded-lg text-white font-medium ${message.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
+          {message.text}
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
