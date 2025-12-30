@@ -24,7 +24,8 @@ const page = async () => {
     },
     select: {
       id: true,
-      subscription_plan: true
+      subscription_plan: true,
+      timezone: true
     }
   })
 
@@ -102,6 +103,7 @@ const page = async () => {
         hasPinterest={!!pinterestAccount}
         aiLimits={limits.ai}
         userPlan={await currentUserPlan(user.id)}
+        userTimezone={user.timezone}
       />
     </div>
   )
