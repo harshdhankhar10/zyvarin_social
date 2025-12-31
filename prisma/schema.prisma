@@ -7,7 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 enum SubscriptionStatus {
   ACTIVE
   INACTIVE
@@ -28,30 +27,33 @@ enum AccountStatus {
 }
 
 model User {
-  id                String            @id @default(cuid())
-  fullName          String
-  email             String            @unique
-  password          String
-  avatarUrl         String?           @default("https://static.vecteezy.com/system/resources/previews/048/926/061/non_2x/bronze-membership-icon-default-avatar-profile-icon-membership-icon-social-media-user-image-illustration-vector.jpg")
-  timezone          String?
-  subscription_plan SubscriptionPlan? @default(FREE)
-  next_billing_date DateTime?
+  id                  String             @id @default(cuid())
+  fullName            String
+  email               String             @unique
+  password            String
+  avatarUrl           String?            @default("https://static.vecteezy.com/system/resources/previews/048/926/061/non_2x/bronze-membership-icon-default-avatar-profile-icon-membership-icon-social-media-user-image-illustration-vector.jpg")
+  timezone            String?
+  subscription_plan   SubscriptionPlan?  @default(FREE)
+  next_billing_date   DateTime?
   subscription_status SubscriptionStatus @default(INACTIVE)
-  role              Role              @default(USER)
-  status            AccountStatus     @default(INACTIVE)
-  isEmailVerified   Boolean           @default(false)
-  lastLogin         DateTime?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  socialProviders   SocialProvider[]
-  aiUsages          AI_Usage[]
-  notifications     Notification[]
-  invoices          Invoice[]
-  transactions      Transaction[]
-  blogComments      BlogComment[]
-  blogUpvotes       BlogUpvote[]
-  blogDownvotes     BlogDownvote[]
-  bugReports        BugReport[]
+  role                Role               @default(USER)
+  status              AccountStatus      @default(INACTIVE)
+  isEmailVerified     Boolean            @default(false)
+  lastLogin           DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  socialProviders     SocialProvider[]
+  aiUsages            AI_Usage[]
+  notifications       Notification[]
+  invoices            Invoice[]
+  transactions        Transaction[]
+  blogComments        BlogComment[]
+  blogUpvotes         BlogUpvote[]
+  blogDownvotes       BlogDownvote[]
+  bugReports          BugReport[]
+  Team                Team[]
+  TeamMember          TeamMember[]
+  TeamAuditLog        TeamAuditLog[]
 }
 
 model SocialProvider {
@@ -70,8 +72,8 @@ model SocialProvider {
   profileData Json?
   credentials Json?
 
-  isConnected     Boolean   @default(false)
-  quotaExhausted  Boolean   @default(false)
+  isConnected      Boolean   @default(false)
+  quotaExhausted   Boolean   @default(false)
   quotaExhaustedAt DateTime?
 
   totalPostsPublished Int @default(0)
@@ -101,29 +103,28 @@ enum PostStatus {
 }
 
 model Post {
-  id               String    @id @default(cuid())
+  id               String     @id @default(cuid())
   socialProviderId String
   content          String
-  status           PostStatus    @default(POSTED)
+  status           PostStatus @default(POSTED)
   errorMessage     String?
   mediaUrls        String[]
   platformPostId   String?
 
   scheduledFor DateTime?
-  postedAt         DateTime?
-
+  postedAt     DateTime?
 
   socialProvider SocialProvider @relation(fields: [socialProviderId], references: [id], onDelete: Cascade)
 
-  metrics      SocialMetric[]
+  metrics SocialMetric[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([socialProviderId, platformPostId])
   @@index([scheduledFor])
   @@index([status])
   @@index([platformPostId])
-  @@unique([socialProviderId, platformPostId])
 }
 
 model SocialMetric {
@@ -140,7 +141,7 @@ model SocialMetric {
   followsGained Int?
   collectedAt   DateTime @default(now())
 
-  post          Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([platform, collectedAt])
 }
@@ -150,28 +151,36 @@ enum SenderType {
   SYSTEM
 }
 
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  senderType SenderType @default(SYSTEM)
-  title     String
-  message   String
-  isRead    Boolean  @default(false)
+enum NotificationType {
+  GENERAL
+  TEAM
+}
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  senderType SenderType       @default(SYSTEM)
+  type       NotificationType @default(GENERAL)
+  title      String
+  message    String
+  teamId     String?
+  isRead     Boolean          @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  Team      Team?    @relation(fields: [teamId], references: [id])
 }
 
 model AI_Usage {
   id                 String   @id @default(cuid())
   userId             String
-  type               String  @default("COMPOSE_POST")
-  additionalInfo    String?
+  type               String   @default("COMPOSE_POST")
+  additionalInfo     String?
   platforms_enhanced String[] @default([])
   enhancement_types  String[] @default([])
-  postUsed           String  @default("")
+  postUsed           String   @default("")
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -186,41 +195,38 @@ enum SubscriptionPlan {
   PREMIUM
 }
 
-
 model Invoice {
-  id         String   @id @default(cuid())
-  userId      String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  invoiceNumber String @unique
-  orderId     String
-  plan      SubscriptionPlan 
-  planPeriod String @default("MONTHLY") 
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoiceNumber String           @unique
+  orderId       String
+  plan          SubscriptionPlan
+  planPeriod    String           @default("MONTHLY")
 
-  subTotal   Float
-  taxAmount  Float
+  subTotal    Float
+  taxAmount   Float
   totalAmount Float
-  currency   String @default("INR")
-  
+  currency    String @default("INR")
 
-  paymentMethod String
+  paymentMethod    String
   paymentGatewayId String
-  paymentStatus String
-  paymentDate   DateTime
+  paymentStatus    String
+  paymentDate      DateTime
 
   invoiceStatus String
-  issueDate    DateTime
-  dueDate      DateTime
-  paidDate     DateTime?
-
+  issueDate     DateTime
+  dueDate       DateTime
+  paidDate      DateTime?
 
   itemDescription String
-  itemQuantity   Int     @default(1)
-  
+  itemQuantity    Int    @default(1)
+
   additionalInfo Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([userId])
   @@index([invoiceNumber])
 }
@@ -238,12 +244,12 @@ enum TransactionStatus {
 }
 
 model Transaction {
-  id               String   @id @default(cuid())
-  userId           String
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactionType TransactionType @default(SUBSCRIPTION_PAYMENT)
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactionType TransactionType   @default(SUBSCRIPTION_PAYMENT)
   amount          Float
-  currency        String @default("INR")
+  currency        String            @default("INR")
   status          TransactionStatus @default(PENDING)
   paymentMethod   String
   transactionDate DateTime
@@ -257,37 +263,37 @@ model Transaction {
 }
 
 model Blog {
-  id                String      @id @default(cuid())
-  title             String      @unique
-  slug              String      @unique
-  excerpt           String      @db.Text
-  content           String      @db.Text
-  featuredImage     String?
-  author            String      @default("Zyvarin Team")
-  category          String      @default("General")
-  tags              String[]    @default([])
-  
-  published         Boolean     @default(false)
-  featured          Boolean     @default(false)
-  
-  viewCount         Int         @default(0)
-  readTime          Int
+  id            String   @id @default(cuid())
+  title         String   @unique
+  slug          String   @unique
+  excerpt       String   @db.Text
+  content       String   @db.Text
+  featuredImage String?
+  author        String   @default("Zyvarin Team")
+  category      String   @default("General")
+  tags          String[] @default([])
 
-  upvotes          Int         @default(0)
-  downvotes        Int         @default(0)
-  
-  seoTitle          String?
-  seoDescription    String?
-  seoKeywords       String[]    @default([])
-  
-  comments         BlogComment[]
-  userUpvotes      BlogUpvote[]
-  userDownvotes    BlogDownvote[]
-  
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  publishedAt       DateTime?
-  
+  published Boolean @default(false)
+  featured  Boolean @default(false)
+
+  viewCount Int @default(0)
+  readTime  Int
+
+  upvotes   Int @default(0)
+  downvotes Int @default(0)
+
+  seoTitle       String?
+  seoDescription String?
+  seoKeywords    String[] @default([])
+
+  comments      BlogComment[]
+  userUpvotes   BlogUpvote[]
+  userDownvotes BlogDownvote[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+
   @@index([slug])
   @@index([published])
   @@index([category])
@@ -295,74 +301,151 @@ model Blog {
 }
 
 model BlogComment {
-  id        String   @id @default(cuid())
-  blogId    String
-  userId    String
-  
-  content   String   @db.Text
-  
-  approved  Boolean  @default(true)
-  
-  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  blogId String
+  userId String
+
+  content String @db.Text
+
+  approved Boolean @default(true)
+
+  blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
+  @@unique([blogId, userId, createdAt])
   @@index([blogId])
   @@index([userId])
-  @@unique([blogId, userId, createdAt])
 }
 
 model BlogUpvote {
-  id        String   @id @default(cuid())
-  blogId    String
-  userId    String
-  
-  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  blogId String
+  userId String
+
+  blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
-  
+
   @@unique([blogId, userId])
   @@index([blogId])
   @@index([userId])
 }
 
 model BlogDownvote {
-  id        String   @id @default(cuid())
-  blogId    String
-  userId    String
-  
-  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  blogId String
+  userId String
+
+  blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
-  
+
   @@unique([blogId, userId])
   @@index([blogId])
   @@index([userId])
 }
 
 model BugReport {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   userId      String
   title       String
-  description String   @db.Text
+  description String  @db.Text
   category    String
-  severity    String   @default("MEDIUM")
+  severity    String  @default("MEDIUM")
   screenshot  String?
   page        String?
-  status      String   @default("OPEN")
-  
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  status      String  @default("OPEN")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([status])
   @@index([severity])
   @@index([createdAt])
 }
 
+// Teams and Collaboration models 
+
+enum TeamMemberRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum TeamInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum TeamStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model Team {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  isVerified  Boolean    @default(false)
+  status      TeamStatus @default(INACTIVE)
+
+  slug          String         @unique
+  ownerId       String
+  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  max_members   Int            @default(20)
+  members       TeamMember[]
+  auditLogs     TeamAuditLog[]
+  notifications Notification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TeamMember {
+  id     String               @id @default(cuid())
+  teamId String
+  userId String
+  role   TeamMemberRole       @default(VIEWER)
+  status TeamInvitationStatus @default(PENDING)
+
+  invitedBy String
+
+  joinedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+model TeamAuditLog {
+  id      String @id @default(cuid())
+  teamId  String
+  userId  String
+  action  String
+  details Json?
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([teamId])
+  @@index([userId])
+}
