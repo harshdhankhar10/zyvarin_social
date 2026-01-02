@@ -36,6 +36,9 @@ const page = async ({ searchParams }: { searchParams: Promise<{ team?: string, a
     }
 
     const session = await currentLoggedInUserInfo();
+    if(!session){
+        return null;
+    }
     let userTeams: any[] = [];
 
     if (session && typeof session !== 'boolean') {
