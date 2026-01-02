@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation'
 interface TeamData {
   id: string
   name: string
-  description: string
+  description: string | null
   slug: string
   memberCount: number
   maxMembers: number

@@ -126,7 +126,7 @@ export default async function AcceptInvitePage({ params }: { params: Promise<{ t
     description: invitation.team.description,
     slug: invitation.team.slug,
     memberCount: invitation.team._count.members,
-    maxMembers: invitation.team.maxMembers,
+    maxMembers: invitation.team.max_members,
     owner: invitation.team.owner,
     invitedBy: invitation.invitedBy,
     role: invitation.role,
