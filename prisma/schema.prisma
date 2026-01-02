@@ -54,6 +54,8 @@ model User {
   Team                Team[]
   TeamMember          TeamMember[]
   TeamAuditLog        TeamAuditLog[]
+  TeamInvite          TeamInvite[]
+  Maintenance         Maintenance[]
 }
 
 model SocialProvider {
@@ -408,8 +410,9 @@ model Team {
   auditLogs     TeamAuditLog[]
   notifications Notification[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  TeamInvite TeamInvite[]
 }
 
 model TeamMember {
@@ -448,4 +451,47 @@ model TeamAuditLog {
 
   @@index([teamId])
   @@index([userId])
+}
+
+model TeamInvite {
+  id          String               @id @default(uuid())
+  teamId      String
+  email       String
+  role        TeamMemberRole       @default(VIEWER)
+  token       String               @unique @default(uuid()) // ← TOKEN STORED HERE
+  status      TeamInvitationStatus @default(PENDING)
+  expiresAt   DateTime
+  invitedById String
+  createdAt   DateTime             @default(now())
+
+  team      Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedBy User @relation(fields: [invitedById], references: [id])
+
+  @@index([token])
+  @@index([email])
+  @@index([teamId])
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELED
+}
+
+model Maintenance {
+  id          String            @id @default(cuid())
+  title       String
+  message     String?           @db.Text
+  status      MaintenanceStatus @default(SCHEDULED)
+  startsAt    DateTime
+  endsAt      DateTime?
+  createdById String?
+  createdBy   User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([status])
+  @@index([startsAt])
+  @@index([endsAt])
 }

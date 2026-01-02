@@ -3,6 +3,7 @@ import { currentLoggedInUserInfo } from '@/utils/currentLogegdInUserInfo'
 import { redirect } from 'next/navigation';
 import TopNavbar from "./TopNavbar";
 import Sidebar from "./Sidebar";
+import prisma from '@/lib/prisma';
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://zyvarin.com"),
@@ -51,9 +52,38 @@ export default async function RootLayout({
     redirect('/account-restricted');
   }
 
+  const userTeams = await prisma.team.findMany({
+    where: {
+      OR: [
+        { ownerId: user.id },
+        {
+          members: {
+            some: {
+              userId: user.id,
+              status: 'ACCEPTED'
+            }
+          }
+        }
+      ]
+    },
+    include: {
+      _count: {
+        select: { members: true }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  const teams = userTeams.map(team => ({
+    id: team.id,
+    name: team.name,
+    memberCount: team._count.members,
+    slug: team.slug
+  }));
+
   return (
     <div className="min-h-screen bg-slate-50">
-      <TopNavbar user = {user} />
+      <TopNavbar user={user} teams={teams} />
       <div className="flex pt-12 h-screen">
         <Sidebar />
         <main className="flex-1 overflow-y-auto py-6 pl-20 pr-8">

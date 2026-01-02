@@ -234,6 +234,32 @@ async function handleSubscriptionExpiry() {
   }
 }
 
+async function handleMaintenanceWindows() {
+  const now = new Date()
+
+  const started = await prisma.maintenance.updateMany({
+    where: {
+      status: 'SCHEDULED',
+      startsAt: { lte: now }
+    },
+    data: { status: 'ONGOING' }
+  })
+
+  const completed = await prisma.maintenance.updateMany({
+    where: {
+      status: 'ONGOING',
+      endsAt: { lte: now }
+    },
+    data: { status: 'COMPLETED' }
+  })
+
+  return {
+    started: started.count,
+    completed: completed.count,
+    timestamp: new Date().toISOString()
+  }
+}
+
 
 
 export async function GET(req: NextRequest) {
@@ -373,6 +399,7 @@ export async function GET(req: NextRequest) {
     const transactionResults = await handlePendingTransactions()
     const invoiceResults = await handlePendingInvoices()
     const subscriptionResults = await handleSubscriptionExpiry()
+    const maintenanceResults = await handleMaintenanceWindows()
 
     return NextResponse.json({
       success: true,
@@ -383,7 +410,8 @@ export async function GET(req: NextRequest) {
         },
         transactions: transactionResults,
         invoices: invoiceResults,
-        subscriptions: subscriptionResults
+        subscriptions: subscriptionResults,
+        maintenance: maintenanceResults
       },
       timestamp: new Date().toISOString()
     })

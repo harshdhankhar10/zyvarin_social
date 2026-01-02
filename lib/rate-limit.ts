@@ -80,6 +80,13 @@ export const rateLimiters = {
     analytics: true,
     prefix: "ratelimit:oauth-callback",
   }),
+
+  teamInvite: new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(10, "1 h"),
+    analytics: true,
+    prefix: "ratelimit:team-invite",
+  }),
 }
 
 export function getIdentifier(req: NextRequest, type: 'ip' | 'email' | 'user', value?: string): string {
